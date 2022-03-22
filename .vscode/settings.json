@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "descr.h": "c",
+        "usb_boot.h": "c",
+        "cyfx3usb.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "Enabled"
+}
