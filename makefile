@@ -20,11 +20,15 @@ all:compile
 
 include $(FX3FWROOT)/fw_build/fx3_fw/fx3_build_config.mak
 
+Include += -I$(FX3FWROOT)/boot_lib/$(CYSDKVERSION)/include
+LDLIBS += -L $(FX3FWROOT)/boot_lib/$(CYSDKVERSION)/lib -lcyfx3boot
+
 MODULE = cyfxslfifosync
 
-SOURCE= $(MODULE).c 		\
+SOURCE= $(MODULE).c     \
 	cyfxslfifousbdscr.c	\
-	cyfxtx.c
+	cyfxtx.c            \
+	bootloader.c
 
 ifeq ($(CYFXBUILD),arm)
 SOURCE_ASM=cyfx_startup.S
