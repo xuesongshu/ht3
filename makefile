@@ -21,14 +21,13 @@ all:compile
 include $(FX3FWROOT)/fw_build/fx3_fw/fx3_build_config.mak
 
 Include += -I$(FX3FWROOT)/boot_lib/$(CYSDKVERSION)/include
-LDLIBS += -L $(FX3FWROOT)/boot_lib/$(CYSDKVERSION)/lib -lcyfx3boot
+# LDLIBS += -L $(FX3FWROOT)/boot_lib/$(CYSDKVERSION)/lib -lcyfx3boot
 
-MODULE = cyfxslfifosync
+MODULE = ht3
 
-SOURCE= $(MODULE).c     \
-	cyfxslfifousbdscr.c	\
-	cyfxtx.c            \
-	bootloader.c
+SOURCE= app.c     \
+	usb_dscr.c	\
+	cyfxtx.c            
 
 ifeq ($(CYFXBUILD),arm)
 SOURCE_ASM=cyfx_startup.S
@@ -66,7 +65,8 @@ clean:
 	rm -f ./*.o
 	rm -f cyfxtx.c cyfx_startup.S cyfx_gcc_startup.S
 	rm -f $(MODULE).img
-
+	rm -f cyfxtx.c
+	rm -f cyfx_gcc_startup.S
 
 compile: $(C_OBJECT) $(A_OBJECT) $(EXES)
 
