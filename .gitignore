@@ -1,0 +1,10 @@
+[Dd]ebug
+[Rr]elease
+*.d
+*.o
+*.mk
+*.map
+*.elf
+*.hex
+*.img
+*.S
