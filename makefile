@@ -14,10 +14,15 @@
 ## installation root directory path.
 ##
 
-MODULE = cyfx_boot_app
-FX3FWROOT = ../../..
+MODULE = ht3
+FX3FWROOT = E:/in_use/FX3
+ARMGCC_INSTALL_PATH = E:/in_use/FX3/ARM_GCC
 
-include ${FX3FWROOT}/fw_build/boot_fw/fx3_build_config.mak
+# include ${FX3FWROOT}/fw_build/boot_fw/fx3_build_config.mak
+include ${FX3FWROOT}/fw_build/fx3_fw/fx3_build_config.mak
+
+Include += -I$(FX3FWROOT)/boot_lib/$(CYSDKVERSION)/include
+LDLIBS += -L $(FX3FWROOT)/boot_lib/$(CYSDKVERSION)/lib -lcyfx3boot
 
 ifeq ($(CYFXBUILD), arm)
 APP_ASM_SOURCE = 
@@ -25,11 +30,13 @@ else
 APP_ASM_SOURCE = ./cyfx_gcc_startup.S
 endif
 
-APP_SOURCE = 			\
+APP_SOURCE = 	    \
 	     main.c		\
+	     app.c		\
 	     descr.c 	\
 	     usb_boot.c	\
-	     uart.c		
+	     uart.c		\
+		 cyfxtx.c    
 
 APP_OBJECT=$(APP_SOURCE:%.c=./%.o)
 APP_ASM_OBJECT=$(APP_ASM_SOURCE:%.S=./%.o)
@@ -46,12 +53,13 @@ $(APP_OBJECT) : %.o : %.c
 
 $(MODULE).$(EXEEXT): $(APP_OBJECT) $(APP_ASM_OBJECT) 
 	$(LINK)
+	elf2img -i $(MODULE).elf -o $(MODULE).img -v
 
 clean:
 	rm -f ./$(MODULE).$(EXEEXT)
 	rm -f ./$(MODULE).map
 	rm -f ./*.o
-	echo includes: $INCLUDE
+	rm -f ./$(MODULE).img
 
 compile: $(APP_OBJECT) $(APP_ASM_OBJECT) $(EXES)
 
