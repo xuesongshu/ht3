@@ -89,15 +89,10 @@ u2p_dma_callback(
 {
     CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
     if (type == CY_U3P_DMA_CB_PROD_EVENT) {
-        /* This is a produce event notification to the CPU. This notification is
-         * received upon reception of every buffer. The buffer will not be sent
-         * out unless it is explicitly committed. The call shall fail if there
-         * is a bus reset / usb disconnect or if there is any application error. */
         status = CyU3PDmaChannelCommitBuffer(chHandle, input->buffer_p.count, 0);
         if (status != CY_U3P_SUCCESS) {
             CyU3PDebugPrint(4, "CyU3PDmaChannelCommitBuffer failed, Error code = %d\n", status);
         }
-        /* Increment the counter. */
         g_dma_rx_count++;
     }
 }
@@ -112,10 +107,6 @@ p2u_dma_callback(
 {
     CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
     if (type == CY_U3P_DMA_CB_PROD_EVENT) {
-        /* This is a produce event notification to the CPU. This notification is
-         * received upon reception of every buffer. The buffer will not be sent
-         * out unless it is explicitly committed. The call shall fail if there
-         * is a bus reset / usb disconnect or if there is any application error. */
         status = CyU3PDmaChannelCommitBuffer(chHandle, input->buffer_p.count, 0);
         if (status != CY_U3P_SUCCESS) {
             CyU3PDebugPrint(4, "CyU3PDmaChannelCommitBuffer failed, Error code = %d\n", status);
@@ -263,14 +254,11 @@ usb_setup_cb(
     uint32_t setupdat1
 )
 {
-    /* Fast enumeration is used. Only requests addressed to the interface, class,
-     * vendor and unknown control requests are received by this function.
-     * This application does not support any class or vendor requests. */
     uint8_t  bRequest, bReqType;
     uint8_t  bType, bTarget;
     uint16_t wValue, wIndex;
     CyBool_t isHandled = CyFalse;
-    /* Decode the fields from the setup request. */
+
     bReqType = (setupdat0 & CY_U3P_USB_REQUEST_TYPE_MASK);
     bType    = (bReqType & CY_U3P_USB_TYPE_MASK);
     bTarget  = (bReqType & CY_U3P_USB_TARGET_MASK);
@@ -278,27 +266,16 @@ usb_setup_cb(
     wValue   = ((setupdat0 & CY_U3P_USB_VALUE_MASK)   >> CY_U3P_USB_VALUE_POS);
     wIndex   = ((setupdat1 & CY_U3P_USB_INDEX_MASK)   >> CY_U3P_USB_INDEX_POS);
     if (bType == CY_U3P_USB_STANDARD_RQT) {
-        /* Handle SET_FEATURE(FUNCTION_SUSPEND) and CLEAR_FEATURE(FUNCTION_SUSPEND)
-         * requests here. It should be allowed to pass if the device is in configured
-         * state and failed otherwise. */
-        if ((bTarget == CY_U3P_USB_TARGET_INTF) && ((bRequest == CY_U3P_USB_SC_SET_FEATURE)
-                                                    || (bRequest == CY_U3P_USB_SC_CLEAR_FEATURE)) && (wValue == 0)) {
+        if ((bTarget == CY_U3P_USB_TARGET_INTF) &&
+                ((bRequest == CY_U3P_USB_SC_SET_FEATURE) ||
+                 (bRequest == CY_U3P_USB_SC_CLEAR_FEATURE)) &&
+                (wValue == 0)) {
             if (g_is_app_active)
                 CyU3PUsbAckSetup();
             else
                 CyU3PUsbStall(0, CyTrue, CyFalse);
             isHandled = CyTrue;
         }
-        /* CLEAR_FEATURE request for endpoint is always passed to the setup callback
-         * regardless of the enumeration model used. When a clear feature is received,
-         * the previous transfer has to be flushed and cleaned up. This is done at the
-         * protocol level. Since this is just a loopback operation, there is no higher
-         * level protocol. So flush the EP memory and reset the DMA channel associated
-         * with it. If there are more than one EP associated with the channel reset both
-         * the EPs. The endpoint stall and toggle / sequence number is also expected to be
-         * reset. Return CyFalse to make the library clear the stall and reset the endpoint
-         * toggle. Or invoke the CyU3PUsbStall (ep, CyFalse, CyTrue) and return CyTrue.
-         * Here we are clearing the stall. */
         if ((bTarget == CY_U3P_USB_TARGET_ENDPT) && (bRequest == CY_U3P_USB_SC_CLEAR_FEATURE)
                 && (wValue == CY_U3P_USBX_FS_EP_HALT)) {
             if (g_is_app_active) {
@@ -338,18 +315,18 @@ usb_event_cb(
 {
     switch (evtype) {
     case CY_U3P_USB_EVENT_SETCONF:
-        /* Disable the low power entry to optimize USB throughput */
+
         CyU3PUsbLPMDisable();
-        /* Stop the application before re-starting. */
+
         if (g_is_app_active) {
             app_stop();
         }
-        /* Start the loop back function. */
+
         app_start();
         break;
     case CY_U3P_USB_EVENT_RESET:
     case CY_U3P_USB_EVENT_DISCONNECT:
-        /* Stop the loop back function. */
+
         if (g_is_app_active) {
             app_stop();
         }
@@ -359,14 +336,6 @@ usb_event_cb(
     }
 }
 
-/* Callback function to handle LPM requests from the USB 3.0 host. This function is invoked by the API
-   whenever a state change from U0 -> U1 or U0 -> U2 happens. If we return CyTrue from this function, the
-   FX3 device is retained in the low power state. If we return CyFalse, the FX3 device immediately tries
-   to trigger an exit back to U0.
-
-   This application does not have any state in which we should not allow U1/U2 transitions; and therefore
-   the function always return CyTrue.
- */
 CyBool_t
 app_lpm_rqt_cb(
     CyU3PUsbLinkPowerMode link_mode)
@@ -374,8 +343,6 @@ app_lpm_rqt_cb(
     return CyTrue;
 }
 
-/* This function initializes the GPIF interface and initializes
- * the USB interface. */
 void
 app_init(void)
 {
@@ -443,16 +410,11 @@ app_init(void)
         CyU3PDebugPrint(4, "CyU3PUsbStart failed to Start, Error code = %d\n", apiRetStatus);
         app_error_handler(apiRetStatus);
     }
-    /* The fast enumeration is the easiest way to setup a USB connection,
-     * where all enumeration phase is handled by the library. Only the
-     * class / vendor requests need to be handled by the application. */
+
     CyU3PUsbRegisterSetupCallback(usb_setup_cb, CyTrue);
-    /* Setup the callback to handle the USB events. */
     CyU3PUsbRegisterEventCallback(usb_event_cb);
-    /* Register a callback to handle LPM requests from the USB 3.0 host. */
     CyU3PUsbRegisterLPMRequestCallback(app_lpm_rqt_cb);
-    /* Set the USB Enumeration descriptors */
-    /* Super speed device descriptor. */
+
     apiRetStatus = CyU3PUsbSetDesc(CY_U3P_USB_SET_SS_DEVICE_DESCR, 0, (uint8_t *)CyFxUSB30DeviceDscr);
     if (apiRetStatus != CY_U3P_SUCCESS) {
         CyU3PDebugPrint(4, "USB set device descriptor failed, Error code = %d\n", apiRetStatus);
@@ -562,10 +524,6 @@ CyFxApplicationDefine(
                                      );
     /* Check the return code */
     if (retThrdCreate != 0) {
-        /* Thread Creation failed with the error code retThrdCreate */
-        /* Add custom recovery or debug actions here */
-        /* Application cannot continue */
-        /* Loop indefinitely */
         while (1);
     }
 }
@@ -579,8 +537,7 @@ main(void)
     CyU3PIoMatrixConfig_t io_cfg;
     CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
     CyU3PSysClockConfig_t clockConfig;
-    /* When the GPIF data bus is configured as 32-bits wide and running at 100 MHz (synchronous),
-       the FX3 system clock has to be set to a frequency greater than 400 MHz. */
+
 #if (CY_FX_SLFIFO_GPIF_16_32BIT_CONF_SELECT == 0)
     clockConfig.setSysClk400  = CyFalse;
 #else
@@ -600,11 +557,7 @@ main(void)
     if (status != CY_U3P_SUCCESS) {
         goto handle_fatal_error;
     }
-    /* Configure the IO matrix for the device. On the FX3 DVK board, the COM port
-     * is connected to the IO(53:56). This means that either DQ32 mode should be
-     * selected or lppMode should be set to UART_ONLY. Here we are choosing
-     * UART_ONLY configuration for 16 bit slave FIFO configuration and setting
-     * isDQ32Bit for 32-bit slave FIFO configuration. */
+
     io_cfg.s0Mode = CY_U3P_SPORT_INACTIVE;
     io_cfg.s1Mode = CY_U3P_SPORT_INACTIVE;
     io_cfg.useUart   = CyTrue;
