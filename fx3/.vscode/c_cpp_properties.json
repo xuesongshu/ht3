@@ -1,0 +1,24 @@
+{
+    "env": {
+        "FX3":"C:/Program Files (x86)/Cypress/EZ-USB FX3 SDK/1.3"
+    },
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${env:FX3}/fw_lib/1_3_4/inc/",
+                "${env:FX3}/boot_lib/1_3_4/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "__CYU3P_TX__=1"
+            ],
+            "compilerPath": "${env:FX3}/ARM GCC/bin/arm-none-eabi-gcc.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "gcc-arm"
+        }
+    ],
+    "version": 4
+}

@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "cyu3types.h": "c",
+        "cyu3os.h": "c",
+        "cyu3externcstart.h": "c",
+        "app.h": "c"
+    }
+}

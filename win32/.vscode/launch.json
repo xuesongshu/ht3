@@ -10,7 +10,8 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/Debug",
             "environment": [],
-            "console": "externalTerminal"
+            "console": "externalTerminal",
+            "preLaunchTask": "cmake"
         }
     ]
 }

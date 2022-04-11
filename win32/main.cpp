@@ -14,6 +14,7 @@ int main(int argc, char** argv)
 	bool bnot_find = true;
 	do {
 		usb->Open(ifd);
+		ifd++;
 		ivid = usb->VendorID;
 		ipid = usb->ProductID;
 		if (ivid == 0x04b4 && ipid == 0x00f1) {
@@ -34,7 +35,7 @@ int main(int argc, char** argv)
 	printf("product version: %d.%d\r\n", imajor, iminor);
 
 	while (1) {
-		printf("输入一个数字（255以内）发送给设备，输入0表示退出本程序。");
+		printf("输入一个数字（255以内）发送给设备，输入0表示退出本程序。\r\n");
 		int iinput = 0;
 		std::cin >> iinput;
 		if (iinput) {
@@ -45,13 +46,13 @@ int main(int argc, char** argv)
 			ctrl->Value = 0;
 			ctrl->Index = 0;
 			ctrl->TimeOut = 100;
-			long ilen = 0;
-			uint8_t ibuf = 0;
-			bool bxfer = ctrl->XferData(&ibuf, ilen);
+			long ilen = 512;
+			uint8_t ibuf[512] = {0,};
+			bool bxfer = ctrl->XferData(ibuf, ilen);
 			if (bxfer) {
-				printf("transfer %d success, received %d width length %d", iinput, ibuf, ilen);
+				printf("transfer %d success, received %d width length %d.\r\n", iinput, ibuf[0], ilen);
 			} else {
-				printf("transfer %d failed.", iinput);
+				printf("transfer %d failed. error code: %d\r\n", iinput, ctrl->LastError);
 			}
 		} else {
 			break;
