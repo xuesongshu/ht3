@@ -193,7 +193,7 @@ void app_start(void)
     /* Update the status flag. */
     g_is_app_active = CyTrue;
     CyU3PGpioSetValue(59, CyFalse);
-    CyU3PDebugPrint(4, "app started.");
+    CyU3PDebugPrint(4, "app started.\r\n");
 }
 
 /* This function stops the slave FIFO loop application. This shall be called
@@ -236,16 +236,25 @@ CyBool_t usb_setup_cb(uint32_t setupdat0, uint32_t setupdat1)
     uint16_t ivalue, iindex;
     CyBool_t bis_handled = CyFalse;
 
-    CyU3PDebugPrint(6, "usb_setup_cb\n");
     ireq_type = (setupdat0 & CY_U3P_USB_REQUEST_TYPE_MASK);
     itype    = (ireq_type & CY_U3P_USB_TYPE_MASK);
     itarget  = (ireq_type & CY_U3P_USB_TARGET_MASK);
     irequest = ((setupdat0 & CY_U3P_USB_REQUEST_MASK) >> CY_U3P_USB_REQUEST_POS);
     ivalue   = ((setupdat0 & CY_U3P_USB_VALUE_MASK)   >> CY_U3P_USB_VALUE_POS);
     iindex   = ((setupdat1 & CY_U3P_USB_INDEX_MASK)   >> CY_U3P_USB_INDEX_POS);
+    //CyU3PDebugPrint(6, "[usb_setup_cb] setupdat0: %08x\r\n",setupdat0);
+    //CyU3PDebugPrint(6, "[usb_setup_cb] setupdat1: %08x\r\n",setupdat1);
+    //CyU3PDebugPrint(6, "[usb_setup_cb] active: %d\r\n",g_is_app_active);
+    //CyU3PDebugPrint(6, "[usb_setup_cb] req_type: %d\r\n",ireq_type);
+    //CyU3PDebugPrint(6, "[usb_setup_cb] type: %d\r\n",itype);
+    //CyU3PDebugPrint(6, "[usb_setup_cb] target: %d\r\n",itarget);
+    CyU3PDebugPrint(6, "[usb_setup_cb] request: %d\r\n",irequest);
+    //CyU3PDebugPrint(6, "[usb_setup_cb] value: %d\r\n",ivalue);
+    //CyU3PDebugPrint(6, "[usb_setup_cb] index: %d\r\n",iindex);
     if (itype == CY_U3P_USB_STANDARD_RQT) {
+        CyU3PDebugPrint(6, "enter itype == CY_U3P_USB_STANDARD_RQT\r\n");
         if ((itarget == CY_U3P_USB_TARGET_INTF) &&
-                ((irequest == CY_U3P_USB_SC_SET_FEATURE) || (irequest == CY_U3P_USB_SC_CLEAR_FEATURE))
+                (irequest == CY_U3P_USB_SC_SET_FEATURE || irequest == CY_U3P_USB_SC_CLEAR_FEATURE)
                 && (ivalue == 0)) {
             if (g_is_app_active)
                 CyU3PUsbAckSetup();
@@ -253,32 +262,62 @@ CyBool_t usb_setup_cb(uint32_t setupdat0, uint32_t setupdat1)
                 CyU3PUsbStall(0, CyTrue, CyFalse);
             bis_handled = CyTrue;
         }
-        if ((itarget == CY_U3P_USB_TARGET_ENDPT) && (irequest == CY_U3P_USB_SC_CLEAR_FEATURE)
-                && (ivalue == CY_U3P_USBX_FS_EP_HALT)) {
-            if (g_is_app_active) {
-                if (iindex == PRODUCER1_EP) {
-                    CyU3PUsbSetEpNak(PRODUCER1_EP, CyTrue);
-                    CyU3PBusyWait(125);
-                    CyU3PDmaChannelReset(&g_dma_u2p);
-                    CyU3PUsbFlushEp(PRODUCER1_EP);
-                    CyU3PUsbResetEp(PRODUCER1_EP);
-                    CyU3PDmaChannelSetXfer(&g_dma_u2p, CY_FX_SLFIFO_DMA_TX_SIZE);
-                    CyU3PUsbSetEpNak(PRODUCER1_EP, CyFalse);
+        if (itarget == CY_U3P_USB_TARGET_ENDPT) {
+            CyU3PDebugPrint(6, "enter itarget == CY_U3P_USB_TARGET_ENDPT\r\n");
+            if(irequest == CY_U3P_USB_SC_CLEAR_FEATURE && ivalue == CY_U3P_USBX_FS_EP_HALT)
+            {
+                if (g_is_app_active) {
+                    if (iindex == PRODUCER1_EP) {
+                        CyU3PUsbSetEpNak(PRODUCER1_EP, CyTrue);
+                        CyU3PBusyWait(125);
+                        CyU3PDmaChannelReset(&g_dma_u2p);
+                        CyU3PUsbFlushEp(PRODUCER1_EP);
+                        CyU3PUsbResetEp(PRODUCER1_EP);
+                        CyU3PDmaChannelSetXfer(&g_dma_u2p, CY_FX_SLFIFO_DMA_TX_SIZE);
+                        CyU3PUsbSetEpNak(PRODUCER1_EP, CyFalse);
+                    }
+                    if (iindex == CONSUMER1_EP) {
+                        CyU3PUsbSetEpNak(PRODUCER1_EP, CyTrue);
+                        CyU3PBusyWait(125);
+                        CyU3PDmaChannelReset(&g_dma_p2u);
+                        CyU3PUsbFlushEp(CONSUMER1_EP);
+                        CyU3PUsbResetEp(CONSUMER1_EP);
+                        CyU3PDmaChannelSetXfer(&g_dma_p2u, CY_FX_SLFIFO_DMA_RX_SIZE);
+                        CyU3PUsbSetEpNak(PRODUCER1_EP, CyFalse);
+                    }
+                    CyU3PUsbStall(iindex, CyFalse, CyTrue);
+                    CyU3PUsbAckSetup();
+                    bis_handled = CyTrue;
                 }
-                if (iindex == CONSUMER1_EP) {
-                    CyU3PUsbSetEpNak(PRODUCER1_EP, CyTrue);
-                    CyU3PBusyWait(125);
-                    CyU3PDmaChannelReset(&g_dma_p2u);
-                    CyU3PUsbFlushEp(CONSUMER1_EP);
-                    CyU3PUsbResetEp(CONSUMER1_EP);
-                    CyU3PDmaChannelSetXfer(&g_dma_p2u, CY_FX_SLFIFO_DMA_RX_SIZE);
-                    CyU3PUsbSetEpNak(PRODUCER1_EP, CyFalse);
-                }
-                CyU3PUsbStall(iindex, CyFalse, CyTrue);
+            }
+            if(irequest==11)
+            {
+                CyU3PDebugPrint(6, "enter irequest==11\r\n");
                 CyU3PUsbAckSetup();
+                CyU3PThreadSleep(2000);
+                CyU3PConnectState(CyFalse, CyTrue);
+                CyU3PThreadSleep(1000);
+                CyU3PDeviceReset(CyFalse);
+                CyU3PThreadSleep(1000);
                 bis_handled = CyTrue;
             }
         }
+    }
+    if(itype==64 && itarget==2 && ireq_type==66&&irequest==11)
+    {
+        CyU3PDebugPrint(6, "itype==64 && itarget==2 && ireq_type==66&&irequest==11\r\n");
+        CyU3PUsbAckSetup ();
+        CyU3PThreadSleep (10);
+        app_stop();
+        CyU3PDebugDeInit ();
+        CyU3PUartDeInit ();
+        CyU3PConnectState(CyFalse, CyFalse);
+        CyU3PUsbSetBooterSwitch (CyTrue);
+        //CyU3PUsbJumpBackToBooter (0x40078000);
+        CyU3PDeviceReset(CyFalse);
+        while (1)
+            CyU3PThreadSleep (100);
+        bis_handled = CyTrue;
     }
     return bis_handled;
 }
