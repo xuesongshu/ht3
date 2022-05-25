@@ -9,6 +9,8 @@
 #include "cyu3gpif.h"
 #include "cyu3pib.h"
 #include "cyu3utils.h"
+#include "cyu3i2c.h"
+#include "cyu3spi.h"
 #include "pib_regs.h"
 #include <cyu3gpio.h>
 
@@ -25,15 +27,19 @@ uint32_t g_dma_rx_count = 0;         /* Counter to track the number of buffers r
 uint32_t g_dma_tx_count = 0;         /* Counter to track the number of buffers sent to USB. */
 CyBool_t g_is_app_active = CyFalse;  /* Whether the loopback application is active or not. */
 
+
+void i2c_init(void)
+{
+    CyU3PI2cConfig_t i2c_cfg;
+    
+}
+
 /* Application Error Handler */
 void app_error_handler(CyU3PReturnStatus_t iapi_ret_status)    /* API return status */
 {
-    /* Application failed with the error code iapi_ret_status */
-    /* Add custom debug or recovery actions here */
-    /* Loop Indefinitely */
     for (;;) {
-        /* Thread sleep : 100 ms */
-        CyU3PThreadSleep(100);
+        CyU3PDebugPrint(6, "[app_error_handler] error status: %d\r\n", iapi_ret_status);
+        CyU3PThreadSleep(1000);
     }
 }
 
@@ -303,20 +309,28 @@ CyBool_t usb_setup_cb(uint32_t setupdat0, uint32_t setupdat1)
             }
         }
     }
-    if(itype==64 && itarget==2 && ireq_type==66&&irequest==11)
+    else if(itype==CY_U3P_USB_VENDOR_RQT)
     {
-        CyU3PDebugPrint(6, "itype==64 && itarget==2 && ireq_type==66&&irequest==11\r\n");
-        CyU3PUsbAckSetup ();
-        CyU3PThreadSleep (10);
-        app_stop();
-        CyU3PDebugDeInit ();
-        CyU3PUartDeInit ();
-        CyU3PConnectState(CyFalse, CyFalse);
-        CyU3PUsbSetBooterSwitch (CyTrue);
-        //CyU3PUsbJumpBackToBooter (0x40078000);
-        CyU3PDeviceReset(CyFalse);
-        while (1)
-            CyU3PThreadSleep (100);
+        CyU3PDebugPrint(6, "enter itype == CY_U3P_USB_VENDOR_RQT\r\n");
+        if (itarget == CY_U3P_USB_TARGET_ENDPT)
+        {
+            CyU3PDebugPrint(6, "enter itarget == CY_U3P_USB_VENDOR_RQT, request: %d\r\n", irequest);
+            if (irequest == 11) 
+            {
+                CyU3PUsbAckSetup ();
+                CyU3PThreadSleep (10);
+                app_stop();
+                CyU3PDebugDeInit ();
+                CyU3PUartDeInit ();
+                CyU3PConnectState(CyFalse, CyFalse);
+                CyU3PUsbSetBooterSwitch (CyTrue);
+                CyU3PUsbJumpBackToBooter (0x40078000);
+                CyU3PDeviceReset(CyTrue);
+                while (1)
+                    CyU3PThreadSleep (100);
+            }
+            CyU3PUsbSendEP0Data(1, &irequest);
+        }
         bis_handled = CyTrue;
     }
     return bis_handled;
@@ -325,6 +339,7 @@ CyBool_t usb_setup_cb(uint32_t setupdat0, uint32_t setupdat1)
 /* This is the callback function to handle the USB events. */
 void usb_event_cb(CyU3PUsbEventType_t evtype, uint16_t evdata)
 {
+    CyU3PDebugPrint(6, "[usb_event_cb] type: %d, data: %d\r\n", evtype, evdata);
     switch (evtype) {
     case CY_U3P_USB_EVENT_SETCONF:
         CyU3PUsbLPMDisable();
@@ -347,6 +362,7 @@ void usb_event_cb(CyU3PUsbEventType_t evtype, uint16_t evdata)
 
 CyBool_t app_lpm_rqt_cb(CyU3PUsbLinkPowerMode link_mode)
 {
+    CyU3PDebugPrint(6, "[app_lpm_rqt_cb] link mode: %d\r\n", link_mode);
     return CyTrue;
 }
 
@@ -575,7 +591,7 @@ int main(void)
 #endif
     /* No GPIOs are enabled. */
     io_cfg.gpioSimpleEn[0]  = 0;
-    io_cfg.gpioSimpleEn[1]  = 0x08000000;
+    io_cfg.gpioSimpleEn[1]  = FX3_GPIO_TO_HIFLAG(FX3_GPIO_TEST_OUT);
     io_cfg.gpioComplexEn[0] = 0;
     io_cfg.gpioComplexEn[1] = 0;
     status = CyU3PDeviceConfigureIOMatrix(&io_cfg);

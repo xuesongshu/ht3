@@ -34,7 +34,7 @@ int main(int argc, char **argv)
             while (ifd < icount);
             if (bnot_find)
             {
-                printf("未找到CyUSB设备。程序即将退出。\r\n");
+                printf("未找到CyUSB设备。\r\n");
 				continue;
 			}
             short imajor = 0, iminor = 0;

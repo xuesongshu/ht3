@@ -66,6 +66,10 @@
 #define PRODUCER1_PPORT    CY_U3P_PIB_SOCKET_0    /* P-port Socket 0 is producer */
 #define CONSUMER1_PPORT    CY_U3P_PIB_SOCKET_3    /* P-port Socket 3 is consumer */
 
+#define FX3_GPIO_TEST_OUT               (50)
+#define FX3_GPIO_TO_LOFLAG(gpio)        (1 << (gpio))
+#define FX3_GPIO_TO_HIFLAG(gpio)        (1 << ((gpio) - 32))
+
 /* Extern definitions for the USB Descriptors */
 extern const uint8_t g_usb20_device[];
 extern const uint8_t g_usb30_device[];
