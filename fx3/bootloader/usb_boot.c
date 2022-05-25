@@ -82,17 +82,17 @@ uint16_t gDevStatus __attribute__ ((aligned (4))) = 0;
 CyU3PUsbDescrPtrs   *gpUsbDescPtr; /* Pointer to the USB Descriptors */
 CyFx3BootUsbEp0Pkt_t gEP0;
 
-extern uint8_t gbDevDesc[];
-extern uint8_t gbCfgDesc[];
-extern uint8_t gbDevQualDesc[];
-extern uint8_t gbLangIDDesc[];
-extern uint8_t gbManufactureDesc[];
-extern uint8_t gbProductDesc[];
-extern uint8_t gbSerialNumDesc[];
-extern uint8_t gbSsDevDesc[];
-extern uint8_t gbBosDesc[];
-extern uint8_t gbSsConfigDesc[];
-extern uint8_t gbFsConfigDesc[];
+extern uint8_t g_usb20_device[];
+extern uint8_t g_hs_config[];
+extern uint8_t g_device_qual[];
+extern uint8_t g_lang_id[];
+extern uint8_t g_manufacture[];
+extern uint8_t g_product[];
+extern uint8_t g_serial_num[];
+extern uint8_t g_usb30_device[];
+extern uint8_t g_bos[];
+extern uint8_t g_ss_config[];
+extern uint8_t g_fs_config[];
 
 /* Function to handle the GET_STATUS Standard request. */
 int 
@@ -800,19 +800,19 @@ myUsbBoot ()
                  should not be repeatedly set on each firmware execution to prevent memory overflow
                  in this copied data structure.
          */
-        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_SS_DEVICE_DESCR, 0, (uint8_t *)gbSsDevDesc);
-        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_FS_CONFIG_DESCR, 0, (uint8_t *)gbFsConfigDesc);
-        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_SS_CONFIG_DESCR, 0, (uint8_t *)gbSsConfigDesc);
-        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_SS_BOS_DESCR, 0, (uint8_t *)gbBosDesc);
+        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_SS_DEVICE_DESCR, 0, (uint8_t *)g_usb30_device);
+        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_FS_CONFIG_DESCR, 0, (uint8_t *)g_fs_config);
+        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_SS_CONFIG_DESCR, 0, (uint8_t *)g_ss_config);
+        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_SS_BOS_DESCR, 0, (uint8_t *)g_bos);
 
-        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_HS_DEVICE_DESCR, 0, (uint8_t *)gbDevDesc);
-        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_DEVQUAL_DESCR, 0, (uint8_t *)gbDevQualDesc);
-        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_HS_CONFIG_DESCR, 0, (uint8_t *)gbCfgDesc);
+        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_HS_DEVICE_DESCR, 0, (uint8_t *)g_usb20_device);
+        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_DEVQUAL_DESCR, 0, (uint8_t *)g_device_qual);
+        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_HS_CONFIG_DESCR, 0, (uint8_t *)g_hs_config);
 
-        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_STRING_DESCR, 0, (uint8_t *)gbLangIDDesc);
-        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_STRING_DESCR, 1, (uint8_t *)gbManufactureDesc);
-        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_STRING_DESCR, 2, (uint8_t *)gbProductDesc);
-        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_STRING_DESCR, 3, (uint8_t *)gbSerialNumDesc);
+        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_STRING_DESCR, 0, (uint8_t *)g_lang_id);
+        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_STRING_DESCR, 1, (uint8_t *)g_manufacture);
+        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_STRING_DESCR, 2, (uint8_t *)g_product);
+        CyFx3BootUsbSetDesc (CY_U3P_USB_SET_STRING_DESCR, 3, (uint8_t *)g_serial_num);
 
         gpUsbDescPtr = CyFx3BootUsbGetDesc ();
         CyFx3BootUsbConnect (CyTrue, CyTrue);

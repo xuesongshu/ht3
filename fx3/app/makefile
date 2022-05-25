@@ -26,7 +26,7 @@ Include += -I$(FX3FWROOT)/boot_lib/$(CYSDKVERSION)/include
 MODULE = ht3
 
 SOURCE= app.c     \
-	usb_dscr.c	\
+	../usb_dscr.c	\
 	cyfxtx.c            
 
 ifeq ($(CYFXBUILD),arm)

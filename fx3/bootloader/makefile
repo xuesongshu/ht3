@@ -19,6 +19,8 @@ FX3FWROOT = E:/in_use/FX3
 
 include ${FX3FWROOT}/fw_build/boot_fw/fx3_build_config.mak
 
+Include += -I${FX3FWROOT}/firmware/u3p_firmware/inc
+
 ifeq ($(CYFXBUILD), arm)
 APP_ASM_SOURCE = 
 else
@@ -30,7 +32,7 @@ APP_SOURCE = 			\
 	     spi_test.c 	\
 	     gpio_test.c	\
 	     usb_boot.c		\
-	     usb_descriptors.c 	\
+	     ../usb_dscr.c	\
 	     i2c_boot.c 	\
 	     test_uart.c
 
