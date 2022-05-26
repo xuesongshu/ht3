@@ -29,6 +29,8 @@
 #include "cyu3usbconst.h"
 #include "cyu3externcstart.h"
 
+#define MAJOR_NUMBER 0x01
+#define MINOR_NUMBER 0x03
 /* Endpoint and socket definitions for the bulk source sink application */
 
 /* To change the producer and consumer EP enter the appropriate EP numbers for the #defines.
