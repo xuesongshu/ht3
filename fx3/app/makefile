@@ -23,10 +23,10 @@ include $(FX3FWROOT)/fw_build/fx3_fw/fx3_build_config.mak
 Include += -I$(FX3FWROOT)/boot_lib/$(CYSDKVERSION)/include
 # LDLIBS += -L $(FX3FWROOT)/boot_lib/$(CYSDKVERSION)/lib -lcyfx3boot
 
-MODULE = ht3
+MODULE = app
 
-SOURCE= app.c     \
-	../usb_dscr.c	\
+SOURCE= cyfxbulkdscr.c     \
+	cyfxbulksrcsink.c	   \
 	cyfxtx.c            
 
 ifeq ($(CYFXBUILD),arm)
@@ -42,7 +42,9 @@ EXES = $(MODULE).$(EXEEXT)
 
 $(MODULE).$(EXEEXT): $(A_OBJECT) $(C_OBJECT)
 	$(LINK)
-	elf2img -i $(MODULE).elf -o $(MODULE).img -v -i2cconf 0x0E
+	[ -f $(MODULE).img ] && rm -f $(MODULE).img && echo remove old image. || true
+#	elf2img -i $(MODULE).elf -o $(MODULE).img -v -i2cconf 0x0E
+	elf2img -i $(MODULE).elf -o $(MODULE).img -v
 
 cyfxtx.c:
 	cp $(FX3FWROOT)/fw_build/fx3_fw/cyfxtx.c .
@@ -67,5 +69,7 @@ clean:
 	rm -f $(MODULE).img
 
 compile: $(C_OBJECT) $(A_OBJECT) $(EXES)
-
+	rm -f ./$(MODULE).map
+	rm -f ./*.o
+	
 #[]#

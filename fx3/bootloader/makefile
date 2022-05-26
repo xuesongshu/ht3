@@ -32,7 +32,7 @@ APP_SOURCE = 			\
 	     spi_test.c 	\
 	     gpio_test.c	\
 	     usb_boot.c		\
-	     ../usb_dscr.c	\
+	     usb_descriptors.c	\
 	     i2c_boot.c 	\
 	     test_uart.c
 
