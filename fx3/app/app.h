@@ -89,17 +89,17 @@
 #define CY_FX_BULKSRCSINK_PATTERN            (0xAA)
 
 /* Extern definitions for the USB Descriptors */
-extern const uint8_t CyFxUSB20DeviceDscr[];
-extern const uint8_t CyFxUSB30DeviceDscr[];
-extern const uint8_t CyFxUSBDeviceQualDscr[];
-extern const uint8_t CyFxUSBFSConfigDscr[];
-extern const uint8_t CyFxUSBHSConfigDscr[];
-extern const uint8_t CyFxUSBBOSDscr[];
-extern const uint8_t CyFxUSBSSConfigDscr[];
-extern const uint8_t CyFxUSBStringLangIDDscr[];
-extern const uint8_t CyFxUSBManufactureDscr[];
-extern const uint8_t CyFxUSBProductDscr[];
-extern const uint8_t CyFxUsbOSDscr[];
+extern const uint8_t g_usb20_device[];
+extern const uint8_t g_usb30_device[];
+extern const uint8_t g_device_qual[];
+extern const uint8_t g_fs_config[];
+extern const uint8_t g_hs_config[];
+extern const uint8_t g_bos[];
+extern const uint8_t g_ss_config[];
+extern const uint8_t g_lang_id[];
+extern const uint8_t g_manufacture[];
+extern const uint8_t g_product[];
+extern const uint8_t g_usb_os[];
 
 #include <cyu3externcend.h>
 

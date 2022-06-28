@@ -32,9 +32,9 @@ APP_SOURCE = 			\
 	     spi_test.c 	\
 	     gpio_test.c	\
 	     usb_boot.c		\
-	     usb_descriptors.c	\
+	     ../usb_descr.c	\
 	     i2c_boot.c 	\
-	     test_uart.c
+	     test_uart.c 
 
 APP_OBJECT=$(APP_SOURCE:%.c=./%.o)
 APP_ASM_OBJECT=$(APP_ASM_SOURCE:%.S=./%.o)

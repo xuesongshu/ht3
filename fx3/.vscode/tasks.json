@@ -1,0 +1,24 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cppbuild",
+			"label": "cs-make",
+			"command": "cs-make",
+			"args": [
+				"all",
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/app"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"isDefault": true,
+				"kind": "build"
+			},
+			"detail": "FX3 ARM GCC编译器"
+		}
+	]
+}
