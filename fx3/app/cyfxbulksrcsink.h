@@ -27,29 +27,6 @@
 
 #include "../config.h"
 
-/* Endpoint and socket definitions for the bulk source sink application */
-
-/* To change the producer and consumer EP enter the appropriate EP numbers for the #defines.
- * In the case of IN endpoints enter EP number along with the direction bit.
- * For eg. EP 6 IN endpoint is 0x86
- *     and EP 6 OUT endpoint is 0x06.
- * To change sockets mention the appropriate socket number in the #defines. */
-
-/* Note: For USB 2.0 the endpoints and corresponding sockets are one-to-one mapped
-         i.e. EP 1 is mapped to UIB socket 1 and EP 2 to socket 2 so on */
-
-
-
-#define CY_FX_EP_PRODUCER_SOCKET        CY_U3P_UIB_SOCKET_PROD_1    /* Socket 1 is producer */
-#define CY_FX_EP_CONSUMER_SOCKET        CY_U3P_UIB_SOCKET_CONS_1    /* Socket 1 is consumer */
-
-#define CY_FX_BULKSRCSINK_DMA_TX_SIZE        (0)        /* DMA transfer size is set to infinite */
-#define CY_FX_BULKSRCSINK_THREAD_STACK       (0x1000)   /* Bulk loop application thread stack size */
-#define CY_FX_BULKSRCSINK_THREAD_PRIORITY    (8)        /* Bulk loop application thread priority */
-
-/* Byte value that is filled into the source buffers that FX3 sends out. */
-#define CY_FX_BULKSRCSINK_PATTERN            (0xAA)
-
 /* Extern definitions for the USB Descriptors */
 extern const uint8_t g_usb20_device[];
 extern const uint8_t g_usb30_device[];

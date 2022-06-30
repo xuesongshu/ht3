@@ -75,20 +75,12 @@ uint8_t glEp0Buffer[32] __attribute__ ((aligned (32))); /* Local buffer used for
 CyU3PEvent glBulkLpEvent;       /* Event group used to signal the thread that there is a pending request. */
 uint32_t   gl_setupdat0;        /* Variable that holds the setupdat0 value (bmRequestType, bRequest and wValue). */
 uint32_t   gl_setupdat1;        /* Variable that holds the setupdat1 value (wIndex and wLength). */
-#define CYFX_USB_CTRL_TASK      (1 << 0)        /* Event that indicates that there is a pending USB control request. */
-#define CYFX_USB_HOSTWAKE_TASK  (1 << 1)        /* Event that indicates the a Remote Wake should be attempted. */
 
 /* Buffer used for USB event logs. */
 uint8_t *gl_UsbLogBuffer = NULL;
-#define CYFX_USBLOG_SIZE        (0x1000)
 
 /* Timer Instance */
 CyU3PTimer glLpmTimer;
-
-/* GPIO used for testing IO state retention when switching from boot firmware to full firmware. */
-#define FX3_GPIO_TEST_OUT               (50)
-#define FX3_GPIO_TO_LOFLAG(gpio)        (1 << (gpio))
-#define FX3_GPIO_TO_HIFLAG(gpio)        (1 << ((gpio) - 32))
 
 
 /* Application Error Handler */

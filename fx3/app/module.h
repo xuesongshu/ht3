@@ -5,7 +5,6 @@
 #include "cyu3os.h"
 #include "cyu3dma.h"
 #include "cyu3error.h"
-#include "app.h"
 #include "cyu3usb.h"
 #include "cyu3uart.h"
 #include "cyu3gpio.h"

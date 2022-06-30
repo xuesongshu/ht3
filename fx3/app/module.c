@@ -1,6 +1,6 @@
 //专用于模块化优化app.c
 #include "module.h"
-
+#include "../config.h"
 
 void config_endpoint(uint16_t burst_len, uint16_t size, uint16_t ep_id)
 {
