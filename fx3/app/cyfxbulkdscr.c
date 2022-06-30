@@ -32,10 +32,10 @@
  * CyU3PDeviceCacheControl for more information.
  */
 
-#include "config.h"
+#include "cyfxbulksrcsink.h"
 
 /* Standard device descriptor for USB 3.0 */
-const uint8_t g_usb30_device[] __attribute__ ((aligned (32))) =
+const uint8_t CyFxUSB30DeviceDscr[] __attribute__ ((aligned (32))) =
 {
     0x12,                           /* Descriptor size */
     CY_U3P_USB_DEVICE_DESCR,        /* Device descriptor type */
@@ -46,7 +46,7 @@ const uint8_t g_usb30_device[] __attribute__ ((aligned (32))) =
     0x09,                           /* Maxpacket size for EP0 : 2^9 */
     0xB4,0x04,                      /* Vendor ID */
     0xF1,0x00,                      /* Product ID */
-    MINOR_NUMBER,MAJOR_NUMBER,                      /* Device release number */
+    0x00,0x00,                      /* Device release number */
     0x01,                           /* Manufacture string index */
     0x02,                           /* Product string index */
     0x00,                           /* Serial number string index */
@@ -54,7 +54,7 @@ const uint8_t g_usb30_device[] __attribute__ ((aligned (32))) =
 };
 
 /* Standard device descriptor for USB 2.0 */
-const uint8_t g_usb20_device[] __attribute__ ((aligned (32))) =
+const uint8_t CyFxUSB20DeviceDscr[] __attribute__ ((aligned (32))) =
 {
     0x12,                           /* Descriptor size */
     CY_U3P_USB_DEVICE_DESCR,        /* Device descriptor type */
@@ -65,7 +65,7 @@ const uint8_t g_usb20_device[] __attribute__ ((aligned (32))) =
     0x40,                           /* Maxpacket size for EP0 : 64 bytes */
     0xB4,0x04,                      /* Vendor ID */
     0xF1,0x00,                      /* Product ID */
-    MINOR_NUMBER,MAJOR_NUMBER,      /* Device release number */
+    0x00,0x00,                      /* Device release number */
     0x01,                           /* Manufacture string index */
     0x02,                           /* Product string index */
     0x00,                           /* Serial number string index */
@@ -73,7 +73,7 @@ const uint8_t g_usb20_device[] __attribute__ ((aligned (32))) =
 };
 
 /* Binary device object store descriptor */
-const uint8_t g_bos[] __attribute__ ((aligned (32))) =
+const uint8_t CyFxUSBBOSDscr[] __attribute__ ((aligned (32))) =
 {
     0x05,                           /* Descriptor size */
     CY_U3P_BOS_DESCR,               /* Device descriptor type */
@@ -99,7 +99,7 @@ const uint8_t g_bos[] __attribute__ ((aligned (32))) =
 };
 
 /* Standard device qualifier descriptor */
-const uint8_t g_device_qual[] __attribute__ ((aligned (32))) =
+const uint8_t CyFxUSBDeviceQualDscr[] __attribute__ ((aligned (32))) =
 {
     0x0A,                           /* Descriptor size */
     CY_U3P_USB_DEVQUAL_DESCR,       /* Device qualifier descriptor type */
@@ -113,7 +113,7 @@ const uint8_t g_device_qual[] __attribute__ ((aligned (32))) =
 };
 
 /* Standard super speed configuration descriptor */
-const uint8_t g_ss_config[] __attribute__ ((aligned (32))) =
+const uint8_t CyFxUSBSSConfigDscr[] __attribute__ ((aligned (32))) =
 {
     /* Configuration descriptor */
     0x09,                           /* Descriptor size */
@@ -168,7 +168,7 @@ const uint8_t g_ss_config[] __attribute__ ((aligned (32))) =
 };
 
 /* Standard high speed configuration descriptor */
-const uint8_t g_hs_config[] __attribute__ ((aligned (32))) =
+const uint8_t CyFxUSBHSConfigDscr[] __attribute__ ((aligned (32))) =
 {
     /* Configuration descriptor */
     0x09,                           /* Descriptor size */
@@ -209,7 +209,7 @@ const uint8_t g_hs_config[] __attribute__ ((aligned (32))) =
 };
 
 /* Standard full speed configuration descriptor */
-const uint8_t g_fs_config[] __attribute__ ((aligned (32))) =
+const uint8_t CyFxUSBFSConfigDscr[] __attribute__ ((aligned (32))) =
 {
     /* Configuration descriptor */
     0x09,                           /* Descriptor size */
@@ -250,7 +250,7 @@ const uint8_t g_fs_config[] __attribute__ ((aligned (32))) =
 };
 
 /* Standard language ID string descriptor */
-const uint8_t g_lang_id[] __attribute__ ((aligned (32))) =
+const uint8_t CyFxUSBStringLangIDDscr[] __attribute__ ((aligned (32))) =
 {
     0x04,                           /* Descriptor size */
     CY_U3P_USB_STRING_DESCR,        /* Device descriptor type */
@@ -258,7 +258,7 @@ const uint8_t g_lang_id[] __attribute__ ((aligned (32))) =
 };
 
 /* Standard manufacturer string descriptor */
-const uint8_t g_manufacture[] __attribute__ ((aligned (32))) =
+const uint8_t CyFxUSBManufactureDscr[] __attribute__ ((aligned (32))) =
 {
     0x10,                           /* Descriptor size */
     CY_U3P_USB_STRING_DESCR,        /* Device descriptor type */
@@ -272,7 +272,7 @@ const uint8_t g_manufacture[] __attribute__ ((aligned (32))) =
 };
 
 /* Standard product string descriptor */
-const uint8_t g_product[] __attribute__ ((aligned (32))) =
+const uint8_t CyFxUSBProductDscr[] __attribute__ ((aligned (32))) =
 {
     0x08,                           /* Descriptor size */
     CY_U3P_USB_STRING_DESCR,        /* Device descriptor type */
@@ -282,7 +282,7 @@ const uint8_t g_product[] __attribute__ ((aligned (32))) =
 };
 
 /* Microsoft OS Descriptor. */
-const uint8_t g_usb_os[] __attribute__ ((aligned (32))) =
+const uint8_t CyFxUsbOSDscr[] __attribute__ ((aligned (32))) =
 {
     0x0E,
     CY_U3P_USB_STRING_DESCR,
@@ -298,15 +298,7 @@ const uint8_t g_usb_os[] __attribute__ ((aligned (32))) =
 /* Place this buffer as the last buffer so that no other variable / code shares
  * the same cache line. Do not add any other variables / arrays in this file.
  * This will lead to variables sharing the same cache line. */
-const uint8_t g_desc_align[32] __attribute__ ((aligned (32)));
+const uint8_t CyFxUsbDscrAlignBuffer[32] __attribute__ ((aligned (32)));
 
 /* [ ] */
 
-unsigned char g_serial_num [] = 
-{
-    0x1A,                           /* bLength */
-    0x03,                           /* bDescType */
-    '0',0,'0',0,'0',0,'0',0,'0',0,'0',0,
-    '0',0,'0',0,'0',0,'4',0,'B',0,'E',0,
-    0,0,                            /* long word align */
-};

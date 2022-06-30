@@ -25,10 +25,9 @@ Include += -I$(FX3FWROOT)/boot_lib/$(CYSDKVERSION)/include
 
 MODULE = app
 
-SOURCE= app.c     \
+SOURCE= cyfxbulksrcsink.c     \
 	../usb_descr.c	   \
-	cyfxtx.c        \
-	module.c    
+	cyfxtx.c
 
 ifeq ($(CYFXBUILD),arm)
 SOURCE_ASM=cyfx_startup.S

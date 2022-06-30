@@ -25,12 +25,8 @@
 #ifndef _INCLUDED_CYFXBULKSRCSINK_H_
 #define _INCLUDED_CYFXBULKSRCSINK_H_
 
-#include "cyu3types.h"
-#include "cyu3usbconst.h"
-#include "cyu3externcstart.h"
+#include "../config.h"
 
-#define MAJOR_NUMBER 0x01
-#define MINOR_NUMBER 0x04
 /* Endpoint and socket definitions for the bulk source sink application */
 
 /* To change the producer and consumer EP enter the appropriate EP numbers for the #defines.
@@ -42,8 +38,7 @@
 /* Note: For USB 2.0 the endpoints and corresponding sockets are one-to-one mapped
          i.e. EP 1 is mapped to UIB socket 1 and EP 2 to socket 2 so on */
 
-#define CY_FX_EP_PRODUCER               0x01    /* EP 1 OUT */
-#define CY_FX_EP_CONSUMER               0x81    /* EP 1 IN */
+
 
 #define CY_FX_EP_PRODUCER_SOCKET        CY_U3P_UIB_SOCKET_PROD_1    /* Socket 1 is producer */
 #define CY_FX_EP_CONSUMER_SOCKET        CY_U3P_UIB_SOCKET_CONS_1    /* Socket 1 is consumer */
@@ -52,46 +47,8 @@
 #define CY_FX_BULKSRCSINK_THREAD_STACK       (0x1000)   /* Bulk loop application thread stack size */
 #define CY_FX_BULKSRCSINK_THREAD_PRIORITY    (8)        /* Bulk loop application thread priority */
 
-/* Burst mode definitions: Only for super speed operation. The maximum burst mode 
- * supported is limited by the USB hosts available. The maximum value for this is 16
- * and the minimum (no-burst) is 1. */
-
-#ifdef CYMEM_256K
-
-/*
-   As we have only 32 KB total DMA buffers available on the CYUSB3011/CYUSB3012 parts, the buffering
-   needs to be reduced.
- */
-
-/* Burst length in 1 KB packets. Only applicable to USB 3.0. */
-#define CY_FX_EP_BURST_LENGTH                   (4)
-
-/* Multiplication factor used when allocating DMA buffers to reduce DMA callback frequency. */
-#define CY_FX_DMA_SIZE_MULTIPLIER               (1)
-
-/* Number of DMA buffers to be used. More buffers can give better throughput. */
-#define CY_FX_BULKSRCSINK_DMA_BUF_COUNT         (2)
-
-#else
-
-/* Burst length in 1 KB packets. Only applicable to USB 3.0. */
-#define CY_FX_EP_BURST_LENGTH                   (16)
-
-/* Multiplication factor used when allocating DMA buffers to reduce DMA callback frequency. */
-#define CY_FX_DMA_SIZE_MULTIPLIER               (2)
-
-/* Number of DMA buffers to be used. More buffers can give better throughput. */
-#define CY_FX_BULKSRCSINK_DMA_BUF_COUNT         (3)
-
-#endif
-
 /* Byte value that is filled into the source buffers that FX3 sends out. */
 #define CY_FX_BULKSRCSINK_PATTERN            (0xAA)
-
-
-#define CYFX_USB_CTRL_TASK      (1 << 0)        /* Event that indicates that there is a pending USB control request. */
-#define CYFX_USB_HOSTWAKE_TASK  (1 << 1)        /* Event that indicates the a Remote Wake should be attempted. */
-#define CYFX_USBLOG_SIZE        (0x1000)
 
 /* Extern definitions for the USB Descriptors */
 extern const uint8_t g_usb20_device[];

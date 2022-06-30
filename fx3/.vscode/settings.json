@@ -5,6 +5,8 @@
         "cyu3externcstart.h": "c",
         "app.h": "c",
         "cyu3externcend.h": "c",
-        "cyu3usb.h": "c"
+        "cyu3usb.h": "c",
+        "config.h": "c",
+        "cyu3gpio.h": "c"
     }
 }
