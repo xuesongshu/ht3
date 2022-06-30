@@ -18,8 +18,8 @@
 /* Note: For USB 2.0 the endpoints and corresponding sockets are one-to-one mapped
          i.e. EP 1 is mapped to UIB socket 1 and EP 2 to socket 2 so on */
 
-#define CY_FX_EP_PRODUCER               0x01    /* EP 1 OUT */
-#define CY_FX_EP_CONSUMER               0x81    /* EP 1 IN */
+#define HT_PRODUCER1               0x01    /* EP 1 OUT */
+#define HT_CONSUMER1               0x81    /* EP 1 IN */
 
 /* Burst mode definitions: Only for super speed operation. The maximum burst mode 
  * supported is limited by the USB hosts available. The maximum value for this is 16
@@ -54,8 +54,8 @@
 
 #endif
 
-#define CY_FX_EP_PRODUCER_SOCKET        CY_U3P_UIB_SOCKET_PROD_1    /* Socket 1 is producer */
-#define CY_FX_EP_CONSUMER_SOCKET        CY_U3P_UIB_SOCKET_CONS_1    /* Socket 1 is consumer */
+#define HT_PRODUCER1_SOCKET        CY_U3P_UIB_SOCKET_PROD_1    /* Socket 1 is producer */
+#define HT_CONSUMER1_SOCKET        CY_U3P_UIB_SOCKET_CONS_1    /* Socket 1 is consumer */
 
 #define CY_FX_BULKSRCSINK_DMA_TX_SIZE        (0)        /* DMA transfer size is set to infinite */
 #define CY_FX_BULKSRCSINK_THREAD_STACK       (0x1000)   /* Bulk loop application thread stack size */

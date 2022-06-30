@@ -307,11 +307,11 @@ app_start (
 {
     uint16_t size = get_buffer_size();
 
-    config_endpoint(CY_FX_EP_BURST_LENGTH, size, CY_FX_EP_PRODUCER);
-    config_endpoint(CY_FX_EP_BURST_LENGTH, size, CY_FX_EP_CONSUMER);
+    config_endpoint(CY_FX_EP_BURST_LENGTH, size, HT_PRODUCER1);
+    config_endpoint(CY_FX_EP_BURST_LENGTH, size, HT_CONSUMER1);
 
-    config_dma(&glChHandleBulkSink, size, CY_FX_EP_PRODUCER_SOCKET, CyTrue);
-    config_dma(&glChHandleBulkSrc, size, CY_FX_EP_CONSUMER_SOCKET, CyFalse);
+    config_dma(&glChHandleBulkSink, size, HT_PRODUCER1_SOCKET, CyTrue);
+    config_dma(&glChHandleBulkSrc, size, HT_CONSUMER1_SOCKET, CyFalse);
     
     CyU3PUsbRegisterEpEvtCallback (CyFxBulkSrcSinkApplnEpEvtCB, CYU3P_USBEP_SS_RETRY_EVT, 0x00, 0x02);
     CyFxBulkSrcSinkFillInBuffers ();
@@ -327,8 +327,8 @@ void
 app_stop (
         void)
 {
-    destroy_endpoint(&glChHandleBulkSink, CY_FX_EP_PRODUCER, CY_FX_EP_PRODUCER_SOCKET);
-    destroy_endpoint(&glChHandleBulkSrc, CY_FX_EP_CONSUMER, CY_FX_EP_CONSUMER_SOCKET);
+    destroy_endpoint(&glChHandleBulkSink, HT_PRODUCER1, HT_PRODUCER1_SOCKET);
+    destroy_endpoint(&glChHandleBulkSrc, HT_CONSUMER1, HT_CONSUMER1_SOCKET);
 }
 
 /* Callback to handle the USB setup requests. */
@@ -401,13 +401,13 @@ CyFxBulkSrcSinkApplnUSBSetupCB (
         {
             if (glIsApplnActive)
             {
-                if (wIndex == CY_FX_EP_PRODUCER)
+                if (wIndex == HT_PRODUCER1)
                 {
                     setup_cb_endpoint(wIndex, &glChHandleBulkSink);
                     isHandled = CyTrue;
                 }
 
-                if (wIndex == CY_FX_EP_CONSUMER)
+                if (wIndex == HT_CONSUMER1)
                 {
                     setup_cb_endpoint(wIndex, &glChHandleBulkSrc);
                     isHandled = CyTrue;
@@ -718,7 +718,7 @@ BulkSrcSinkAppThread_Entry (
         {
             /* Stall the endpoint, so that the host can reset the pipe and continue. */
             glSrcEpFlush = CyFalse;
-            CyU3PUsbStall (CY_FX_EP_CONSUMER, CyTrue, CyFalse);
+            CyU3PUsbStall (HT_CONSUMER1, CyTrue, CyFalse);
         }
 
         /* Force the USB 3.0 link to U2. */
