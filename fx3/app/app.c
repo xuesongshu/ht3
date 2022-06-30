@@ -45,16 +45,7 @@
    
    For performance optimizations refer the readme.txt
  */
-
-#include "cyu3system.h"
-#include "cyu3os.h"
-#include "cyu3dma.h"
-#include "cyu3error.h"
-#include "app.h"
-#include "cyu3usb.h"
-#include "cyu3uart.h"
-#include "cyu3gpio.h"
-#include "cyu3utils.h"
+#include "module.h"
 
 CyU3PThread     g_app_thread;    /* Application thread structure */
 CyU3PDmaChannel g_dma_in;      /* DMA MANUAL_IN channel handle.          */
@@ -75,12 +66,9 @@ uint8_t g_ep0_buffer[32] __attribute__ ((aligned (32))); /* Local buffer used fo
 CyU3PEvent g_bulk_event;       /* Event group used to signal the thread that there is a pending request. */
 uint32_t   g_setupdat0;        /* Variable that holds the setupdat0 value (bmRequestType, irequest and ivalue). */
 uint32_t   g_setupdat1;        /* Variable that holds the setupdat1 value (iindex and ilength). */
-#define CYFX_USB_CTRL_TASK      (1 << 0)        /* Event that indicates that there is a pending USB control request. */
-#define CYFX_USB_HOSTWAKE_TASK  (1 << 1)        /* Event that indicates the a Remote Wake should be attempted. */
 
 /* Buffer used for USB event logs. */
 uint8_t *g_usb_log_buffer = NULL;
-#define CYFX_USBLOG_SIZE        (0x1000)
 
 /* Timer Instance */
 CyU3PTimer g_lpm_timer;
@@ -91,23 +79,6 @@ CyU3PTimer g_lpm_timer;
 #define FX3_GPIO_TO_HIFLAG(gpio)        (1 << ((gpio) - 32))
 
 static volatile CyBool_t g_src_ep_flush = CyFalse;
-
-/* Application Error Handler */
-void app_error_handler (
-        CyU3PReturnStatus_t iapi_ret    /* API return status */
-        )
-{
-    /* Application failed with the error code iapi_ret */
-
-    /* Add custom debug or recovery actions here */
-
-    /* Loop Indefinitely */
-    for (;;)
-    {
-        /* Thread sleep : 100 ms */
-        CyU3PThreadSleep (100);
-    }
-}
 
 /* This function initializes the debug module. The debug prints
  * are routed to the UART and can be seen using a UART console
@@ -297,126 +268,21 @@ void ep_evt_cb (
     }
 }
 
+
 /* This function starts the application. This is called
  * when a SET_CONF event is received from the USB host. The endpoints
  * are configured and the DMA pipe is setup in this function. */
 void app_start (void)
 {
-    uint16_t size = 0;
-    CyU3PEpConfig_t ep_cfg;
-    CyU3PDmaChannelConfig_t dma_cfg;
-    CyU3PReturnStatus_t iapi_ret = CY_U3P_SUCCESS;
-    CyU3PUSBSpeed_t usb_speed = CyU3PUsbGetSpeed();
-
-    /* First identify the usb speed. Once that is identified,
-     * create a DMA channel and start the transfer on this. */
-
-    /* Based on the Bus Speed configure the endpoint packet size */
-    switch (usb_speed)
-    {
-    case CY_U3P_FULL_SPEED:
-        size = 64;
-        break;
-
-    case CY_U3P_HIGH_SPEED:
-        size = 512;
-        break;
-
-    case  CY_U3P_SUPER_SPEED:
-        size = 1024;
-        break;
-
-    default:
-        CyU3PDebugPrint (4, "Error! Invalid USB speed.\n");
-        app_error_handler (CY_U3P_ERROR_FAILURE);
-        break;
-    }
-
-    CyU3PMemSet ((uint8_t *)&ep_cfg, 0, sizeof (ep_cfg));
-    ep_cfg.enable = CyTrue;
-    ep_cfg.epType = CY_U3P_USB_EP_BULK;
-    ep_cfg.burstLen = (usb_speed == CY_U3P_SUPER_SPEED) ?
-        (CY_FX_EP_BURST_LENGTH) : 1;
-    ep_cfg.streams = 0;
-    ep_cfg.pcktSize = size;
-
-    /* Producer endpoint configuration */
-    iapi_ret = CyU3PSetEpConfig(CY_FX_EP_PRODUCER, &ep_cfg);
-    if (iapi_ret != CY_U3P_SUCCESS)
-    {
-        CyU3PDebugPrint (4, "CyU3PSetEpConfig failed, Error code = %d\n", iapi_ret);
-        app_error_handler (iapi_ret);
-    }
-
-    /* Consumer endpoint configuration */
-    iapi_ret = CyU3PSetEpConfig(CY_FX_EP_CONSUMER, &ep_cfg);
-    if (iapi_ret != CY_U3P_SUCCESS)
-    {
-        CyU3PDebugPrint (4, "CyU3PSetEpConfig failed, Error code = %d\n", iapi_ret);
-        app_error_handler (iapi_ret);
-    }
-
-    /* Flush the endpoint memory */
-    CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
-    CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
-
-    /* Create a DMA MANUAL_IN channel for the producer socket. */
-    CyU3PMemSet ((uint8_t *)&dma_cfg, 0, sizeof (dma_cfg));
-    /* The buffer size will be same as packet size for the
-     * full speed, high speed and super speed non-burst modes.
-     * For super speed burst mode of operation, the buffers will be
-     * 1024 * burst length so that a full burst can be completed.
-     * This will mean that a buffer will be available only after it
-     * has been filled or when a short packet is received. */
-    dma_cfg.size  = (size * CY_FX_EP_BURST_LENGTH);
-    /* Multiply the buffer size with the multiplier
-     * for performance improvement. */
-    dma_cfg.size *= CY_FX_DMA_SIZE_MULTIPLIER;
-    dma_cfg.count = CY_FX_BULKSRCSINK_DMA_BUF_COUNT;
-    dma_cfg.prodSckId = CY_FX_EP_PRODUCER_SOCKET;
-    dma_cfg.consSckId = CY_U3P_CPU_SOCKET_CONS;
-    dma_cfg.dmaMode = CY_U3P_DMA_MODE_BYTE;
-    dma_cfg.notification = CY_U3P_DMA_CB_PROD_EVENT;
-    dma_cfg.cb = dma_cb;
-    dma_cfg.prodHeader = 0;
-    dma_cfg.prodFooter = 0;
-    dma_cfg.consHeader = 0;
-    dma_cfg.prodAvailCount = 0;
-
-    iapi_ret = CyU3PDmaChannelCreate (&g_dma_in,
-            CY_U3P_DMA_TYPE_MANUAL_IN, &dma_cfg);
-    if (iapi_ret != CY_U3P_SUCCESS)
-    {
-        CyU3PDebugPrint (4, "CyU3PDmaChannelCreate failed, Error code = %d\n", iapi_ret);
-        app_error_handler(iapi_ret);
-    }
+    uint16_t size = get_buffer_size();    
+    
+    config_endpoint(CY_FX_EP_BURST_LENGTH, size, CY_FX_EP_PRODUCER);
+    config_endpoint(CY_FX_EP_BURST_LENGTH, size, CY_FX_EP_CONSUMER);
+    
 
     /* Create a DMA MANUAL_OUT channel for the consumer socket. */
-    dma_cfg.notification = CY_U3P_DMA_CB_CONS_EVENT;
-    dma_cfg.prodSckId = CY_U3P_CPU_SOCKET_PROD;
-    dma_cfg.consSckId = CY_FX_EP_CONSUMER_SOCKET;
-    iapi_ret = CyU3PDmaChannelCreate (&g_dma_out,
-            CY_U3P_DMA_TYPE_MANUAL_OUT, &dma_cfg);
-    if (iapi_ret != CY_U3P_SUCCESS)
-    {
-        CyU3PDebugPrint (4, "CyU3PDmaChannelCreate failed, Error code = %d\n", iapi_ret);
-        app_error_handler(iapi_ret);
-    }
-
-    /* Set DMA Channel transfer size */
-    iapi_ret = CyU3PDmaChannelSetXfer (&g_dma_in, CY_FX_BULKSRCSINK_DMA_TX_SIZE);
-    if (iapi_ret != CY_U3P_SUCCESS)
-    {
-        CyU3PDebugPrint (4, "CyU3PDmaChannelSetXfer failed, Error code = %d\n", iapi_ret);
-        app_error_handler(iapi_ret);
-    }
-
-    iapi_ret = CyU3PDmaChannelSetXfer (&g_dma_out, CY_FX_BULKSRCSINK_DMA_TX_SIZE);
-    if (iapi_ret != CY_U3P_SUCCESS)
-    {
-        CyU3PDebugPrint (4, "CyU3PDmaChannelSetXfer failed, Error code = %d\n", iapi_ret);
-        app_error_handler(iapi_ret);
-    }
+    config_dma_producer(&g_dma_in, size, CY_FX_EP_PRODUCER_SOCKET);
+    config_dma_consumer(&g_dma_out, size, CY_FX_EP_CONSUMER_SOCKET);
 
     CyU3PUsbRegisterEpEvtCallback (ep_evt_cb, CYU3P_USBEP_SS_RETRY_EVT, 0x00, 0x02);
     fill_in_buffers ();
@@ -430,39 +296,12 @@ void app_start (void)
  * disabled and the DMA pipe is destroyed by this function. */
 void app_stop (void)
 {
-    CyU3PEpConfig_t ep_cfg;
-    CyU3PReturnStatus_t iapi_ret = CY_U3P_SUCCESS;
-
     /* Update the flag so that the application thread is notified of this. */
     g_is_active = CyFalse;
 
-    /* Destroy the channels */
-    CyU3PDmaChannelDestroy (&g_dma_in);
-    CyU3PDmaChannelDestroy (&g_dma_out);
-
-    /* Flush the endpoint memory */
-    CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
-    CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
-
-    /* Disable endpoints. */
-    CyU3PMemSet ((uint8_t *)&ep_cfg, 0, sizeof (ep_cfg));
-    ep_cfg.enable = CyFalse;
-
-    /* Producer endpoint configuration. */
-    iapi_ret = CyU3PSetEpConfig(CY_FX_EP_PRODUCER, &ep_cfg);
-    if (iapi_ret != CY_U3P_SUCCESS)
-    {
-        CyU3PDebugPrint (4, "CyU3PSetEpConfig failed, Error code = %d\n", iapi_ret);
-        app_error_handler (iapi_ret);
-    }
-
-    /* Consumer endpoint configuration. */
-    iapi_ret = CyU3PSetEpConfig(CY_FX_EP_CONSUMER, &ep_cfg);
-    if (iapi_ret != CY_U3P_SUCCESS)
-    {
-        CyU3PDebugPrint (4, "CyU3PSetEpConfig failed, Error code = %d\n", iapi_ret);
-        app_error_handler (iapi_ret);
-    }
+    destroy_endpoint(&g_dma_in, CY_FX_EP_PRODUCER, CY_FX_EP_PRODUCER_SOCKET);
+    destroy_endpoint(&g_dma_out, CY_FX_EP_CONSUMER, CY_FX_EP_CONSUMER_SOCKET);
+    
 }
 
 /* Callback to handle the USB setup requests. */
@@ -536,35 +375,14 @@ CyBool_t usb_setup_cb (
             {
                 if (iindex == CY_FX_EP_PRODUCER)
                 {
-                    CyU3PUsbSetEpNak (CY_FX_EP_PRODUCER, CyTrue);
-                    CyU3PBusyWait (125);
-
-                    CyU3PDmaChannelReset (&g_dma_in);
-                    CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
-                    CyU3PUsbResetEp (CY_FX_EP_PRODUCER);
-                    CyU3PUsbSetEpNak (CY_FX_EP_PRODUCER, CyFalse);
-
-                    CyU3PDmaChannelSetXfer (&g_dma_in, CY_FX_BULKSRCSINK_DMA_TX_SIZE);
-                    CyU3PUsbStall (iindex, CyFalse, CyTrue);
+                    setup_cb_producer(CY_FX_EP_PRODUCER, &g_dma_in);
                     bhandled = CyTrue;
-                    CyU3PUsbAckSetup ();
                 }
 
                 if (iindex == CY_FX_EP_CONSUMER)
                 {
-                    CyU3PUsbSetEpNak (CY_FX_EP_CONSUMER, CyTrue);
-                    CyU3PBusyWait (125);
-
-                    CyU3PDmaChannelReset (&g_dma_out);
-                    CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
-                    CyU3PUsbResetEp (CY_FX_EP_CONSUMER);
-                    CyU3PUsbSetEpNak (CY_FX_EP_CONSUMER, CyFalse);
-
-                    CyU3PDmaChannelSetXfer (&g_dma_out, CY_FX_BULKSRCSINK_DMA_TX_SIZE);
-                    CyU3PUsbStall (iindex, CyFalse, CyTrue);
+                    setup_cb_consumer(CY_FX_EP_CONSUMER, &g_dma_out);
                     bhandled = CyTrue;
-                    CyU3PUsbAckSetup ();
-
                     fill_in_buffers ();
                 }
             }
@@ -797,7 +615,7 @@ void app_init (void)
 /*
  * De-initialize function for the USB block. Used to test USB Stop/Start functionality.
  */
-static void app_deinit (void)
+void app_deinit (void)
 {
     if (g_is_active)
         app_stop ();
@@ -808,13 +626,18 @@ static void app_deinit (void)
     CyU3PThreadSleep (1000);
 }
 
+void app_spi_init()
+{
+    
+}
+
 /* Entry function for the BulkSrcSinkAppThread. */
 void app_thread_entry (uint32_t input)
 {
     CyU3PReturnStatus_t ireturn_stat;
     uint32_t ievent_mask = CYFX_USB_CTRL_TASK | CYFX_USB_HOSTWAKE_TASK;   /* Events that we are interested in. */
     uint32_t ievent_stat;                                                 /* Current status of the events. */
-    uint8_t  ivendor_rqt_cnt = 0;
+
 
     uint16_t prevUsbLogIndex = 0, tmp1, tmp2;
     CyU3PUsbLinkPowerMode curState;
@@ -858,173 +681,7 @@ void app_thread_entry (uint32_t input)
             /* If there is a pending control request, handle it here. */
             if (ievent_stat & CYFX_USB_CTRL_TASK)
             {
-                uint8_t  irequest, itype;
-                uint16_t ilength, temp;
-                uint16_t ivalue, iindex;
-
-                /* Decode the fields from the setup request. */
-                itype = (g_setupdat0 & CY_U3P_USB_REQUEST_TYPE_MASK);
-                irequest = ((g_setupdat0 & CY_U3P_USB_REQUEST_MASK) >> CY_U3P_USB_REQUEST_POS);
-                ilength  = ((g_setupdat1 & CY_U3P_USB_LENGTH_MASK)  >> CY_U3P_USB_LENGTH_POS);
-                ivalue   = ((g_setupdat0 & CY_U3P_USB_VALUE_MASK) >> CY_U3P_USB_VALUE_POS);
-                iindex   = ((g_setupdat1 & CY_U3P_USB_INDEX_MASK) >> CY_U3P_USB_INDEX_POS);
-
-                if ((itype & CY_U3P_USB_TYPE_MASK) == CY_U3P_USB_VENDOR_RQT)
-                {
-                    switch (irequest)
-                    {
-                    case 0x76:
-                        g_ep0_buffer[0] = ivendor_rqt_cnt;
-                        g_ep0_buffer[1] = ~ivendor_rqt_cnt;
-                        g_ep0_buffer[2] = 1;
-                        g_ep0_buffer[3] = 5;
-                        CyU3PUsbSendEP0Data (ilength, g_ep0_buffer);
-                        ivendor_rqt_cnt++;
-                        break;
-
-                    case 0x77:      /* Trigger remote wakeup. */
-                        CyU3PUsbAckSetup ();
-                        CyU3PEventSet (&g_bulk_event, CYFX_USB_HOSTWAKE_TASK, CYU3P_EVENT_OR);
-                        break;
-
-                    case 0x78:      /* Get count of EP0 status events received. */
-                        CyU3PMemCopy ((uint8_t *)g_ep0_buffer, ((uint8_t *)&g_ep0_stat_count), 4);
-                        CyU3PUsbSendEP0Data (4, g_ep0_buffer);
-                        break;
-
-                    case 0x79:      /* Request with no data phase. Insert a delay and then ACK the request. */
-                        CyU3PThreadSleep (5);
-                        CyU3PUsbAckSetup ();
-                        break;
-
-                    case 0x80:      /* Request with OUT data phase. Just get the data and ignore it for now. */
-                        CyU3PUsbGetEP0Data (sizeof (g_ep0_buffer), (uint8_t *)g_ep0_buffer, &ilength);
-                        break;
-
-                    case 0x81:
-                        /* Get the current event log index and send it to the host. */
-                        if (ilength == 2)
-                        {
-                            temp = CyU3PUsbGetEventLogIndex ();
-                            CyU3PMemCopy ((uint8_t *)g_ep0_buffer, (uint8_t *)&temp, 2);
-                            CyU3PUsbSendEP0Data (2, g_ep0_buffer);
-                        }
-                        else
-                            CyU3PUsbStall (0, CyTrue, CyFalse);
-                        break;
-
-                    case 0x82:
-                        /* Send the USB event log buffer content to the host. */
-                        if (ilength != 0)
-                        {
-                            if (ilength < CYFX_USBLOG_SIZE)
-                                CyU3PUsbSendEP0Data (ilength, g_usb_log_buffer);
-                            else
-                                CyU3PUsbSendEP0Data (CYFX_USBLOG_SIZE, g_usb_log_buffer);
-                        }
-                        else
-                            CyU3PUsbAckSetup ();
-                        break;
-
-                    case 0x83:
-                        {
-                            uint32_t addr = ((uint32_t)ivalue << 16) | (uint32_t)iindex;
-                            CyU3PReadDeviceRegisters ((uvint32_t *)addr, 1, (uint32_t *)g_ep0_buffer);
-                            CyU3PUsbSendEP0Data (4, g_ep0_buffer);
-                        }
-                        break;
-
-                    case 0x84:
-                        {
-                            uint8_t major, minor, patch;
-
-                            if (CyU3PUsbGetBooterVersion (&major, &minor, &patch) == CY_U3P_SUCCESS)
-                            {
-                                g_ep0_buffer[0] = major;
-                                g_ep0_buffer[1] = minor;
-                                g_ep0_buffer[2] = patch;
-                                CyU3PUsbSendEP0Data (3, g_ep0_buffer);
-                            }
-                            else
-                                CyU3PUsbStall (0, CyTrue, CyFalse);
-                        }
-                        break;
-
-                    case 0x90:
-                        /* Request to switch control back to the boot firmware. */
-
-                        /* Complete the control request. */
-                        CyU3PUsbAckSetup ();
-                        CyU3PThreadSleep (10);
-
-                        /* Get rid of the DMA channels and EP configuration. */
-                        app_stop ();
-
-                        /* De-initialize the Debug and UART modules. */
-                        CyU3PDebugDeInit ();
-                        CyU3PUartDeInit ();
-
-                        /* Now jump back to the boot firmware image. */
-                        CyU3PUsbSetBooterSwitch (CyTrue);
-                        CyU3PUsbJumpBackToBooter (0x40078000);
-                        while (1)
-                            CyU3PThreadSleep (100);
-                        break;
-
-                    case 0xB1:
-                        /* Switch to a USB 2.0 Connection. */
-                        CyU3PUsbAckSetup ();
-                        CyU3PThreadSleep (1000);
-                        app_stop ();
-                        CyU3PConnectState (CyFalse, CyTrue);
-                        CyU3PThreadSleep (100);
-                        CyU3PConnectState (CyTrue, CyFalse);
-                        break;
-
-                    case 0xB2:
-                        /* Switch to a USB 3.0 connection. */
-                        CyU3PUsbAckSetup ();
-                        CyU3PThreadSleep (100);
-                        app_stop ();
-                        CyU3PConnectState (CyFalse, CyTrue);
-                        CyU3PThreadSleep (10);
-                        CyU3PConnectState (CyTrue, CyTrue);
-                        break;
-
-                    case 0xB3:
-                        /* Stop and restart the USB block. */
-                        CyU3PUsbAckSetup ();
-                        CyU3PThreadSleep (100);
-                        app_deinit ();
-                        app_init ();
-                        break;
-
-                    case 0xE0:
-                        /* Request to reset the FX3 device. */
-                        CyU3PUsbAckSetup ();
-                        CyU3PThreadSleep (2000);
-                        CyU3PConnectState (CyFalse, CyTrue);
-                        CyU3PThreadSleep (1000);
-                        CyU3PDeviceReset (CyFalse);
-                        CyU3PThreadSleep (1000);
-                        break;
-
-                    case 0xE1:
-                        /* Request to place FX3 in standby when VBus is next disconnected. */
-                        g_standby_mode_enable = CyTrue;
-                        CyU3PUsbAckSetup ();
-                        break;
-
-                    default:        /* Unknown request. Stall EP0. */
-                        CyU3PUsbStall (0, CyTrue, CyFalse);
-                        break;
-                    }
-                }
-                else
-                {
-                    /* Only vendor requests are to be handled here. */
-                    CyU3PUsbStall (0, CyTrue, CyFalse);
-                }
+                
             }
         }
 
@@ -1089,7 +746,7 @@ void app_thread_entry (uint32_t input)
                     CyU3PDebugPrint (4, "USB LOG: %x\r\n", g_usb_log_buffer[tmp2]);
                     tmp2++;
                     if (tmp2 == CYFX_USBLOG_SIZE)
-                        tmp2 = 0;
+                        break;
                 }
             }
 

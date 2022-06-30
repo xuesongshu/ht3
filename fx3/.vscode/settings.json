@@ -4,6 +4,7 @@
         "cyu3os.h": "c",
         "cyu3externcstart.h": "c",
         "app.h": "c",
-        "cyu3externcend.h": "c"
+        "cyu3externcend.h": "c",
+        "cyu3usb.h": "c"
     }
 }

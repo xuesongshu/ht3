@@ -30,7 +30,7 @@
 #include "cyu3externcstart.h"
 
 #define MAJOR_NUMBER 0x01
-#define MINOR_NUMBER 0x03
+#define MINOR_NUMBER 0x04
 /* Endpoint and socket definitions for the bulk source sink application */
 
 /* To change the producer and consumer EP enter the appropriate EP numbers for the #defines.
@@ -87,6 +87,11 @@
 
 /* Byte value that is filled into the source buffers that FX3 sends out. */
 #define CY_FX_BULKSRCSINK_PATTERN            (0xAA)
+
+
+#define CYFX_USB_CTRL_TASK      (1 << 0)        /* Event that indicates that there is a pending USB control request. */
+#define CYFX_USB_HOSTWAKE_TASK  (1 << 1)        /* Event that indicates the a Remote Wake should be attempted. */
+#define CYFX_USBLOG_SIZE        (0x1000)
 
 /* Extern definitions for the USB Descriptors */
 extern const uint8_t g_usb20_device[];
