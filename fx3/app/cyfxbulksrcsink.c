@@ -302,7 +302,7 @@ CyFxBulkSrcSinkApplnEpEvtCB (
  * when a SET_CONF event is received from the USB host. The endpoints
  * are configured and the DMA pipe is setup in this function. */
 void
-CyFxBulkSrcSinkApplnStart (
+app_start (
         void)
 {
     uint16_t size = get_buffer_size();
@@ -324,7 +324,7 @@ CyFxBulkSrcSinkApplnStart (
  * or DISCONNECT event is received from the USB host. The endpoints are
  * disabled and the DMA pipe is destroyed by this function. */
 void
-CyFxBulkSrcSinkApplnStop (
+app_stop (
         void)
 {
     destroy_endpoint(&glChHandleBulkSink, CY_FX_EP_PRODUCER, CY_FX_EP_PRODUCER_SOCKET);
@@ -449,11 +449,11 @@ CyFxBulkSrcSinkApplnUSBEventCB (
          * stop it before re-enabling. */
         if (glIsApplnActive)
         {
-            CyFxBulkSrcSinkApplnStop ();
+            app_stop ();
         }
 
         /* Start the source sink function. */
-        CyFxBulkSrcSinkApplnStart ();
+        app_start ();
         break;
 
     case CY_U3P_USB_EVENT_RESET:
@@ -463,7 +463,7 @@ CyFxBulkSrcSinkApplnUSBEventCB (
         /* Stop the source sink function. */
         if (glIsApplnActive)
         {
-            CyFxBulkSrcSinkApplnStop ();
+            app_stop ();
         }
 
         glDataTransStarted = CyFalse;
@@ -505,7 +505,7 @@ CyFxBulkSrcSinkApplntCB (
  * This function does not start the bulk streaming and this is done only when
  * SET_CONF event is received. */
 void
-CyFxBulkSrcSinkApplnInit (void)
+app_init (void)
 {
     CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
     CyBool_t no_renum = CyFalse;
@@ -636,7 +636,7 @@ CyFxBulkSrcSinkApplnInit (void)
     else
     {
         /* USB connection is already active. Configure the endpoints and DMA channels. */
-        CyFxBulkSrcSinkApplnStart ();
+        app_start ();
     }
 
     CyU3PDebugPrint (8, "CyFxBulkSrcSinkApplnInit complete\r\n");
@@ -645,12 +645,12 @@ CyFxBulkSrcSinkApplnInit (void)
 /*
  * De-initialize function for the USB block. Used to test USB Stop/Start functionality.
  */
-static void
-CyFxBulkSrcSinkApplnDeinit (
+void
+app_deinit (
         void)
 {
     if (glIsApplnActive)
-        CyFxBulkSrcSinkApplnStop ();
+        app_stop ();
 
     CyU3PConnectState (CyFalse, CyTrue);
     CyU3PThreadSleep (1000);
@@ -665,8 +665,7 @@ BulkSrcSinkAppThread_Entry (
 {
     CyU3PReturnStatus_t stat;
     uint32_t eventMask = CYFX_USB_CTRL_TASK | CYFX_USB_HOSTWAKE_TASK;   /* Events that we are interested in. */
-    uint32_t eventStat;                                                 /* Current status of the events. */
-    uint8_t  vendorRqtCnt = 0;
+    uint32_t eventStat;              
 
     uint16_t prevUsbLogIndex = 0, tmp1, tmp2;
     CyU3PUsbLinkPowerMode curState;
@@ -676,7 +675,7 @@ BulkSrcSinkAppThread_Entry (
     CyU3PDebugPrint (1, "\n\ndebug initialized\r\n");
 
     /* Initialize the application */
-    CyFxBulkSrcSinkApplnInit();
+    app_init();
 
     /* Create a timer with 100 ms expiry to enable/disable LPM transitions */ 
     CyU3PTimerCreate (&glLpmTimer, TimerCb, 0, 100, 100, CYU3P_NO_ACTIVATE);
@@ -710,173 +709,8 @@ BulkSrcSinkAppThread_Entry (
             /* If there is a pending control request, handle it here. */
             if (eventStat & CYFX_USB_CTRL_TASK)
             {
-                uint8_t  bRequest, bReqType;
-                uint16_t wLength, temp;
-                uint16_t wValue, wIndex;
-
-                /* Decode the fields from the setup request. */
-                bReqType = (gl_setupdat0 & CY_U3P_USB_REQUEST_TYPE_MASK);
-                bRequest = ((gl_setupdat0 & CY_U3P_USB_REQUEST_MASK) >> CY_U3P_USB_REQUEST_POS);
-                wLength  = ((gl_setupdat1 & CY_U3P_USB_LENGTH_MASK)  >> CY_U3P_USB_LENGTH_POS);
-                wValue   = ((gl_setupdat0 & CY_U3P_USB_VALUE_MASK) >> CY_U3P_USB_VALUE_POS);
-                wIndex   = ((gl_setupdat1 & CY_U3P_USB_INDEX_MASK) >> CY_U3P_USB_INDEX_POS);
-
-                if ((bReqType & CY_U3P_USB_TYPE_MASK) == CY_U3P_USB_VENDOR_RQT)
-                {
-                    switch (bRequest)
-                    {
-                    case 0x76:
-                        glEp0Buffer[0] = vendorRqtCnt;
-                        glEp0Buffer[1] = ~vendorRqtCnt;
-                        glEp0Buffer[2] = 1;
-                        glEp0Buffer[3] = 5;
-                        CyU3PUsbSendEP0Data (wLength, glEp0Buffer);
-                        vendorRqtCnt++;
-                        break;
-
-                    case 0x77:      /* Trigger remote wakeup. */
-                        CyU3PUsbAckSetup ();
-                        CyU3PEventSet (&glBulkLpEvent, CYFX_USB_HOSTWAKE_TASK, CYU3P_EVENT_OR);
-                        break;
-
-                    case 0x78:      /* Get count of EP0 status events received. */
-                        CyU3PMemCopy ((uint8_t *)glEp0Buffer, ((uint8_t *)&glEp0StatCount), 4);
-                        CyU3PUsbSendEP0Data (4, glEp0Buffer);
-                        break;
-
-                    case 0x79:      /* Request with no data phase. Insert a delay and then ACK the request. */
-                        CyU3PThreadSleep (5);
-                        CyU3PUsbAckSetup ();
-                        break;
-
-                    case 0x80:      /* Request with OUT data phase. Just get the data and ignore it for now. */
-                        CyU3PUsbGetEP0Data (sizeof (glEp0Buffer), (uint8_t *)glEp0Buffer, &wLength);
-                        break;
-
-                    case 0x81:
-                        /* Get the current event log index and send it to the host. */
-                        if (wLength == 2)
-                        {
-                            temp = CyU3PUsbGetEventLogIndex ();
-                            CyU3PMemCopy ((uint8_t *)glEp0Buffer, (uint8_t *)&temp, 2);
-                            CyU3PUsbSendEP0Data (2, glEp0Buffer);
-                        }
-                        else
-                            CyU3PUsbStall (0, CyTrue, CyFalse);
-                        break;
-
-                    case 0x82:
-                        /* Send the USB event log buffer content to the host. */
-                        if (wLength != 0)
-                        {
-                            if (wLength < CYFX_USBLOG_SIZE)
-                                CyU3PUsbSendEP0Data (wLength, gl_UsbLogBuffer);
-                            else
-                                CyU3PUsbSendEP0Data (CYFX_USBLOG_SIZE, gl_UsbLogBuffer);
-                        }
-                        else
-                            CyU3PUsbAckSetup ();
-                        break;
-
-                    case 0x83:
-                        {
-                            uint32_t addr = ((uint32_t)wValue << 16) | (uint32_t)wIndex;
-                            CyU3PReadDeviceRegisters ((uvint32_t *)addr, 1, (uint32_t *)glEp0Buffer);
-                            CyU3PUsbSendEP0Data (4, glEp0Buffer);
-                        }
-                        break;
-
-                    case 0x84:
-                        {
-                            uint8_t major, minor, patch;
-
-                            if (CyU3PUsbGetBooterVersion (&major, &minor, &patch) == CY_U3P_SUCCESS)
-                            {
-                                glEp0Buffer[0] = major;
-                                glEp0Buffer[1] = minor;
-                                glEp0Buffer[2] = patch;
-                                CyU3PUsbSendEP0Data (3, glEp0Buffer);
-                            }
-                            else
-                                CyU3PUsbStall (0, CyTrue, CyFalse);
-                        }
-                        break;
-
-                    case 0x90:
-                        /* Request to switch control back to the boot firmware. */
-
-                        /* Complete the control request. */
-                        CyU3PUsbAckSetup ();
-                        CyU3PThreadSleep (10);
-
-                        /* Get rid of the DMA channels and EP configuration. */
-                        CyFxBulkSrcSinkApplnStop ();
-
-                        /* De-initialize the Debug and UART modules. */
-                        CyU3PDebugDeInit ();
-                        CyU3PUartDeInit ();
-
-                        /* Now jump back to the boot firmware image. */
-                        CyU3PUsbSetBooterSwitch (CyTrue);
-                        CyU3PUsbJumpBackToBooter (0x40078000);
-                        while (1)
-                            CyU3PThreadSleep (100);
-                        break;
-
-                    case 0xB1:
-                        /* Switch to a USB 2.0 Connection. */
-                        CyU3PUsbAckSetup ();
-                        CyU3PThreadSleep (1000);
-                        CyFxBulkSrcSinkApplnStop ();
-                        CyU3PConnectState (CyFalse, CyTrue);
-                        CyU3PThreadSleep (100);
-                        CyU3PConnectState (CyTrue, CyFalse);
-                        break;
-
-                    case 0xB2:
-                        /* Switch to a USB 3.0 connection. */
-                        CyU3PUsbAckSetup ();
-                        CyU3PThreadSleep (100);
-                        CyFxBulkSrcSinkApplnStop ();
-                        CyU3PConnectState (CyFalse, CyTrue);
-                        CyU3PThreadSleep (10);
-                        CyU3PConnectState (CyTrue, CyTrue);
-                        break;
-
-                    case 0xB3:
-                        /* Stop and restart the USB block. */
-                        CyU3PUsbAckSetup ();
-                        CyU3PThreadSleep (100);
-                        CyFxBulkSrcSinkApplnDeinit ();
-                        CyFxBulkSrcSinkApplnInit ();
-                        break;
-
-                    case 0xE0:
-                        /* Request to reset the FX3 device. */
-                        CyU3PUsbAckSetup ();
-                        CyU3PThreadSleep (2000);
-                        CyU3PConnectState (CyFalse, CyTrue);
-                        CyU3PThreadSleep (1000);
-                        CyU3PDeviceReset (CyFalse);
-                        CyU3PThreadSleep (1000);
-                        break;
-
-                    case 0xE1:
-                        /* Request to place FX3 in standby when VBus is next disconnected. */
-                        StandbyModeEnable = CyTrue;
-                        CyU3PUsbAckSetup ();
-                        break;
-
-                    default:        /* Unknown request. Stall EP0. */
-                        CyU3PUsbStall (0, CyTrue, CyFalse);
-                        break;
-                    }
-                }
-                else
-                {
-                    /* Only vendor requests are to be handled here. */
-                    CyU3PUsbStall (0, CyTrue, CyFalse);
-                }
+                process_command(glEp0Buffer, gl_setupdat0, gl_setupdat1, &glBulkLpEvent, gl_UsbLogBuffer, &glEp0StatCount, &StandbyModeEnable);
+                
             }
         }
 

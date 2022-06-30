@@ -21,7 +21,7 @@ void process_command(uint8_t *ep0_buffer,
     uint32_t setupdat1, 
     CyU3PEvent *bulk_event,
     uint8_t *usb_log_buffer,
-    uint32_t* ep0_stat_count,
+    volatile uint32_t* ep0_stat_count,
     CyBool_t* standby_mode_enable
 );
 void app_error_handler(CyU3PReturnStatus_t iapi_ret);
