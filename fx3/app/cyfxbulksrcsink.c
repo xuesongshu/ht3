@@ -292,8 +292,8 @@ app_start (
     config_endpoint(CY_FX_EP_BURST_LENGTH, size, HT_PRODUCER1);
     config_endpoint(CY_FX_EP_BURST_LENGTH, size, HT_CONSUMER1);
 
-    config_dma(&glChHandleBulkSink, size, HT_PRODUCER1_SOCKET, CyTrue);
-    config_dma(&glChHandleBulkSrc, size, HT_CONSUMER1_SOCKET, CyFalse);
+    config_dma(&glChHandleBulkSink, size, HT_PRODUCER1_SOCKET, CY_U3P_CPU_SOCKET_CONS, CyTrue);
+    config_dma(&glChHandleBulkSrc, size, CY_U3P_CPU_SOCKET_PROD, HT_CONSUMER1_SOCKET, CyFalse);
     
     CyU3PUsbRegisterEpEvtCallback (CyFxBulkSrcSinkApplnEpEvtCB, CYU3P_USBEP_SS_RETRY_EVT, 0x00, 0x02);
     CyFxBulkSrcSinkFillInBuffers ();

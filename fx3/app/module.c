@@ -28,7 +28,12 @@ void config_endpoint(uint16_t burst_len, uint16_t size, uint16_t ep_id)
     CyU3PUsbFlushEp(ep_id);
 }
 
-void config_dma(CyU3PDmaChannel* dma, uint16_t size, uint16_t socket_id, CyBool_t is_producer)
+void config_dma(CyU3PDmaChannel *dma, 
+    uint16_t size, 
+    uint16_t producer_id, 
+    uint16_t consumer_id, 
+    CyBool_t is_for_producer
+)
 {
     CyU3PReturnStatus_t iapi_ret = CY_U3P_SUCCESS;
     CyU3PDmaChannelConfig_t dma_cfg;
@@ -46,19 +51,17 @@ void config_dma(CyU3PDmaChannel* dma, uint16_t size, uint16_t socket_id, CyBool_
      * for performance improvement. */
     dma_cfg.size *= CY_FX_DMA_SIZE_MULTIPLIER;
     dma_cfg.count = CY_FX_BULKSRCSINK_DMA_BUF_COUNT;
-    if(is_producer)
+    if(is_for_producer)
     {
         dma_cfg.notification = CY_U3P_DMA_CB_PROD_EVENT;
-        dma_cfg.prodSckId = socket_id;
-        dma_cfg.consSckId = CY_U3P_CPU_SOCKET_CONS;
     }
     else
     {
         dma_cfg.notification = CY_U3P_DMA_CB_CONS_EVENT;
-        dma_cfg.prodSckId = CY_U3P_CPU_SOCKET_PROD;
-        dma_cfg.consSckId = socket_id;
     }
     
+    dma_cfg.prodSckId = producer_id;
+    dma_cfg.consSckId = consumer_id;
     dma_cfg.dmaMode = CY_U3P_DMA_MODE_BYTE;
     dma_cfg.cb = dma_cb;
     dma_cfg.prodHeader = 0;
@@ -66,7 +69,7 @@ void config_dma(CyU3PDmaChannel* dma, uint16_t size, uint16_t socket_id, CyBool_
     dma_cfg.consHeader = 0;
     dma_cfg.prodAvailCount = 0;
 
-    if(is_producer)
+    if(is_for_producer)
     {
         iapi_ret = CyU3PDmaChannelCreate (dma,CY_U3P_DMA_TYPE_MANUAL_IN, &dma_cfg);
     }
