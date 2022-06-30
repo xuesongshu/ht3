@@ -10,3 +10,4 @@
 *.S
 cyfxtx.c
 build
+.vs*
