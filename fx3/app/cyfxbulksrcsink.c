@@ -435,39 +435,8 @@ void
 CyFxBulkSrcSinkApplnStop (
         void)
 {
-    CyU3PEpConfig_t epCfg;
-    CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
-
-    /* Update the flag so that the application thread is notified of this. */
-    glIsApplnActive = CyFalse;
-
-    /* Destroy the channels */
-    CyU3PDmaChannelDestroy (&glChHandleBulkSink);
-    CyU3PDmaChannelDestroy (&glChHandleBulkSrc);
-
-    /* Flush the endpoint memory */
-    CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
-    CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
-
-    /* Disable endpoints. */
-    CyU3PMemSet ((uint8_t *)&epCfg, 0, sizeof (epCfg));
-    epCfg.enable = CyFalse;
-
-    /* Producer endpoint configuration. */
-    apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_PRODUCER, &epCfg);
-    if (apiRetStatus != CY_U3P_SUCCESS)
-    {
-        CyU3PDebugPrint (4, "CyU3PSetEpConfig failed, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler (apiRetStatus);
-    }
-
-    /* Consumer endpoint configuration. */
-    apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_CONSUMER, &epCfg);
-    if (apiRetStatus != CY_U3P_SUCCESS)
-    {
-        CyU3PDebugPrint (4, "CyU3PSetEpConfig failed, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler (apiRetStatus);
-    }
+    destroy_endpoint(&glChHandleBulkSink, CY_FX_EP_PRODUCER, CY_FX_EP_PRODUCER_SOCKET);
+    destroy_endpoint(&glChHandleBulkSrc, CY_FX_EP_CONSUMER, CY_FX_EP_CONSUMER_SOCKET);
 }
 
 /* Callback to handle the USB setup requests. */
