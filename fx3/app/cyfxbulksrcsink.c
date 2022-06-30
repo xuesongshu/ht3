@@ -195,7 +195,7 @@ void TimerCb(void)
 
 /* Callback funtion for the DMA event notification. */
 void
-CyFxBulkSrcSinkDmaCallback (
+dma_cb (
         CyU3PDmaChannel   *chHandle, /* Handle to the DMA channel. */
         CyU3PDmaCbType_t  type,      /* Callback type.             */
         CyU3PDmaCBInput_t *input)    /* Callback status.           */
@@ -305,63 +305,13 @@ void
 CyFxBulkSrcSinkApplnStart (
         void)
 {
-    uint16_t size = 0;
-    CyU3PEpConfig_t epCfg;
+    uint16_t size = get_buffer_size();
     CyU3PDmaChannelConfig_t dmaCfg;
     CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
-    CyU3PUSBSpeed_t usbSpeed = CyU3PUsbGetSpeed();
 
-    /* First identify the usb speed. Once that is identified,
-     * create a DMA channel and start the transfer on this. */
-
-    /* Based on the Bus Speed configure the endpoint packet size */
-    switch (usbSpeed)
-    {
-    case CY_U3P_FULL_SPEED:
-        size = 64;
-        break;
-
-    case CY_U3P_HIGH_SPEED:
-        size = 512;
-        break;
-
-    case  CY_U3P_SUPER_SPEED:
-        size = 1024;
-        break;
-
-    default:
-        CyU3PDebugPrint (4, "Error! Invalid USB speed.\n");
-        CyFxAppErrorHandler (CY_U3P_ERROR_FAILURE);
-        break;
-    }
-
-    CyU3PMemSet ((uint8_t *)&epCfg, 0, sizeof (epCfg));
-    epCfg.enable = CyTrue;
-    epCfg.epType = CY_U3P_USB_EP_BULK;
-    epCfg.burstLen = (usbSpeed == CY_U3P_SUPER_SPEED) ?
-        (CY_FX_EP_BURST_LENGTH) : 1;
-    epCfg.streams = 0;
-    epCfg.pcktSize = size;
-
-    /* Producer endpoint configuration */
-    apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_PRODUCER, &epCfg);
-    if (apiRetStatus != CY_U3P_SUCCESS)
-    {
-        CyU3PDebugPrint (4, "CyU3PSetEpConfig failed, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler (apiRetStatus);
-    }
-
-    /* Consumer endpoint configuration */
-    apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_CONSUMER, &epCfg);
-    if (apiRetStatus != CY_U3P_SUCCESS)
-    {
-        CyU3PDebugPrint (4, "CyU3PSetEpConfig failed, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler (apiRetStatus);
-    }
-
-    /* Flush the endpoint memory */
-    CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
-    CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
+    config_endpoint(CY_FX_EP_BURST_LENGTH, size, CY_FX_EP_PRODUCER);
+    config_endpoint(CY_FX_EP_BURST_LENGTH, size, CY_FX_EP_CONSUMER);
+    
 
     /* Create a DMA MANUAL_IN channel for the producer socket. */
     CyU3PMemSet ((uint8_t *)&dmaCfg, 0, sizeof (dmaCfg));
@@ -380,7 +330,7 @@ CyFxBulkSrcSinkApplnStart (
     dmaCfg.consSckId = CY_U3P_CPU_SOCKET_CONS;
     dmaCfg.dmaMode = CY_U3P_DMA_MODE_BYTE;
     dmaCfg.notification = CY_U3P_DMA_CB_PROD_EVENT;
-    dmaCfg.cb = CyFxBulkSrcSinkDmaCallback;
+    dmaCfg.cb = dma_cb;
     dmaCfg.prodHeader = 0;
     dmaCfg.prodFooter = 0;
     dmaCfg.consHeader = 0;
