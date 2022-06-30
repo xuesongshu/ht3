@@ -20,6 +20,8 @@
 
 #define HT_PRODUCER1               0x01    /* EP 1 OUT */
 #define HT_CONSUMER1               0x81    /* EP 1 IN */
+#define HT_PRODUCER2               0x02    /* EP 2 OUT */
+#define HT_CONSUMER2               0x82    /* EP 2 IN */
 
 /* Burst mode definitions: Only for super speed operation. The maximum burst mode 
  * supported is limited by the USB hosts available. The maximum value for this is 16
@@ -54,8 +56,10 @@
 
 #endif
 
-#define HT_PRODUCER1_SOCKET        CY_U3P_UIB_SOCKET_PROD_1    /* Socket 1 is producer */
-#define HT_CONSUMER1_SOCKET        CY_U3P_UIB_SOCKET_CONS_1    /* Socket 1 is consumer */
+#define HT_PRODUCER1_SOCKET        CY_U3P_UIB_SOCKET_PROD_1    /* Socket 1 producer */
+#define HT_CONSUMER1_SOCKET        CY_U3P_UIB_SOCKET_CONS_1    /* Socket 1 consumer */
+#define HT_PRODUCER2_SOCKET        CY_U3P_UIB_SOCKET_PROD_2    /* Socket 2 producer */
+#define HT_CONSUMER2_SOCKET        CY_U3P_UIB_SOCKET_CONS_2    /* Socket 2 consumer */
 
 #define CY_FX_BULKSRCSINK_DMA_TX_SIZE        (0)        /* DMA transfer size is set to infinite */
 #define CY_FX_BULKSRCSINK_THREAD_STACK       (0x1000)   /* Bulk loop application thread stack size */
