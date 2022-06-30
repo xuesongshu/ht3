@@ -27,7 +27,8 @@ MODULE = app
 
 SOURCE= cyfxbulksrcsink.c     \
 	../usb_descr.c	   \
-	cyfxtx.c
+	cyfxtx.c \
+	module.c
 
 ifeq ($(CYFXBUILD),arm)
 SOURCE_ASM=cyfx_startup.S

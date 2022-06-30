@@ -55,6 +55,7 @@
 #include "cyu3uart.h"
 #include "cyu3gpio.h"
 #include "cyu3utils.h"
+#include "module.h"
 
 CyU3PThread     bulkSrcSinkAppThread;    /* Application thread structure */
 CyU3PDmaChannel glChHandleBulkSink;      /* DMA MANUAL_IN channel handle.          */
@@ -541,35 +542,14 @@ CyFxBulkSrcSinkApplnUSBSetupCB (
             {
                 if (wIndex == CY_FX_EP_PRODUCER)
                 {
-                    CyU3PUsbSetEpNak (CY_FX_EP_PRODUCER, CyTrue);
-                    CyU3PBusyWait (125);
-
-                    CyU3PDmaChannelReset (&glChHandleBulkSink);
-                    CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
-                    CyU3PUsbResetEp (CY_FX_EP_PRODUCER);
-                    CyU3PUsbSetEpNak (CY_FX_EP_PRODUCER, CyFalse);
-
-                    CyU3PDmaChannelSetXfer (&glChHandleBulkSink, CY_FX_BULKSRCSINK_DMA_TX_SIZE);
-                    CyU3PUsbStall (wIndex, CyFalse, CyTrue);
+                    setup_cb_endpoint(wIndex, &glChHandleBulkSink);
                     isHandled = CyTrue;
-                    CyU3PUsbAckSetup ();
                 }
 
                 if (wIndex == CY_FX_EP_CONSUMER)
                 {
-                    CyU3PUsbSetEpNak (CY_FX_EP_CONSUMER, CyTrue);
-                    CyU3PBusyWait (125);
-
-                    CyU3PDmaChannelReset (&glChHandleBulkSrc);
-                    CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
-                    CyU3PUsbResetEp (CY_FX_EP_CONSUMER);
-                    CyU3PUsbSetEpNak (CY_FX_EP_CONSUMER, CyFalse);
-
-                    CyU3PDmaChannelSetXfer (&glChHandleBulkSrc, CY_FX_BULKSRCSINK_DMA_TX_SIZE);
-                    CyU3PUsbStall (wIndex, CyFalse, CyTrue);
+                    setup_cb_endpoint(wIndex, &glChHandleBulkSrc);
                     isHandled = CyTrue;
-                    CyU3PUsbAckSetup ();
-
                     CyFxBulkSrcSinkFillInBuffers ();
                 }
             }

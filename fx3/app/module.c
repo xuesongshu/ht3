@@ -156,23 +156,7 @@ void destroy_endpoint(CyU3PDmaChannel *dma, uint16_t ep_id, uint16_t socket_id)
     }
 }
 
-void setup_cb_producer(uint16_t ep_id, CyU3PDmaChannel *dma)
-{
-    CyU3PUsbSetEpNak (ep_id, CyTrue);
-    CyU3PBusyWait (125);
-
-    CyU3PDmaChannelReset (dma);
-    CyU3PUsbFlushEp(ep_id);
-    CyU3PUsbResetEp (ep_id);
-    CyU3PUsbSetEpNak (ep_id, CyFalse);
-
-    CyU3PDmaChannelSetXfer (dma, CY_FX_BULKSRCSINK_DMA_TX_SIZE);
-    CyU3PUsbStall (ep_id, CyFalse, CyTrue);
-    CyU3PUsbAckSetup ();
-}
-
-
-void setup_cb_consumer(uint16_t ep_id, CyU3PDmaChannel *dma)
+void setup_cb_endpoint(uint16_t ep_id, CyU3PDmaChannel *dma)
 {
     CyU3PUsbSetEpNak (ep_id, CyTrue);
     CyU3PBusyWait (125);
