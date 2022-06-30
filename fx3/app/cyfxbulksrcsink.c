@@ -84,25 +84,6 @@ uint8_t *gl_UsbLogBuffer = NULL;
 /* Timer Instance */
 CyU3PTimer glLpmTimer;
 
-
-/* Application Error Handler */
-void
-CyFxAppErrorHandler (
-        CyU3PReturnStatus_t apiRetStatus    /* API return status */
-        )
-{
-    /* Application failed with the error code apiRetStatus */
-
-    /* Add custom debug or recovery actions here */
-
-    /* Loop Indefinitely */
-    for (;;)
-    {
-        /* Thread sleep : 100 ms */
-        CyU3PThreadSleep (100);
-    }
-}
-
 /* This function initializes the debug module. The debug prints
  * are routed to the UART and can be seen using a UART console
  * running at 115200 baud rate. */
@@ -126,7 +107,7 @@ CyFxBulkSrcSinkApplnDebugInit (void)
        again. */
     if ((apiRetStatus != 0) && (apiRetStatus != CY_U3P_ERROR_ALREADY_STARTED))
     {
-        CyFxAppErrorHandler(apiRetStatus);
+        app_error_handler(apiRetStatus);
     }
     else
     {
@@ -135,7 +116,7 @@ CyFxBulkSrcSinkApplnDebugInit (void)
 
         apiRetStatus = CyU3PGpioSetSimpleConfig (FX3_GPIO_TEST_OUT, &testConf);
         if (apiRetStatus != 0)
-            CyFxAppErrorHandler (apiRetStatus);
+            app_error_handler (apiRetStatus);
     }
 
     /* Initialize the UART for printing debug messages */
@@ -143,7 +124,7 @@ CyFxBulkSrcSinkApplnDebugInit (void)
     if (apiRetStatus != CY_U3P_SUCCESS)
     {
         /* Error handling */
-        CyFxAppErrorHandler(apiRetStatus);
+        app_error_handler(apiRetStatus);
     }
 
     /* Set UART configuration */
@@ -159,21 +140,21 @@ CyFxBulkSrcSinkApplnDebugInit (void)
     apiRetStatus = CyU3PUartSetConfig (&uartConfig, NULL);
     if (apiRetStatus != CY_U3P_SUCCESS)
     {
-        CyFxAppErrorHandler(apiRetStatus);
+        app_error_handler(apiRetStatus);
     }
 
     /* Set the UART transfer to a really large value. */
     apiRetStatus = CyU3PUartTxSetBlockXfer (0xFFFFFFFF);
     if (apiRetStatus != CY_U3P_SUCCESS)
     {
-        CyFxAppErrorHandler(apiRetStatus);
+        app_error_handler(apiRetStatus);
     }
 
     /* Initialize the debug module. */
     apiRetStatus = CyU3PDebugInit (CY_U3P_LPP_SOCKET_UART_CONS, 8);
     if (apiRetStatus != CY_U3P_SUCCESS)
     {
-        CyFxAppErrorHandler(apiRetStatus);
+        app_error_handler(apiRetStatus);
     }
 
     CyU3PDebugPreamble(CyFalse);
@@ -271,7 +252,7 @@ CyFxBulkSrcSinkFillInBuffers (
         if (stat != CY_U3P_SUCCESS)
         {
             CyU3PDebugPrint (4, "CyU3PDmaChannelGetBuffer failed, Error code = %d\n", stat);
-            CyFxAppErrorHandler(stat);
+            app_error_handler(stat);
         }
 
         CyU3PMemSet (buf_p.buffer, CY_FX_BULKSRCSINK_PATTERN, buf_p.size);
@@ -279,7 +260,7 @@ CyFxBulkSrcSinkFillInBuffers (
         if (stat != CY_U3P_SUCCESS)
         {
             CyU3PDebugPrint (4, "CyU3PDmaChannelCommitBuffer failed, Error code = %d\n", stat);
-            CyFxAppErrorHandler(stat);
+            app_error_handler(stat);
         }
     }
 }
@@ -529,7 +510,7 @@ app_init (void)
     else if (apiRetStatus != CY_U3P_SUCCESS)
     {
         CyU3PDebugPrint (4, "CyU3PUsbStart failed to Start, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler(apiRetStatus);
+        app_error_handler(apiRetStatus);
     }
 
     /* Change GPIO state again. */
@@ -551,7 +532,7 @@ app_init (void)
         if (apiRetStatus != CY_U3P_SUCCESS)
         {
             CyU3PDebugPrint (4, "USB Connect failed, Error code = %d\n", apiRetStatus);
-            CyFxAppErrorHandler(apiRetStatus);
+            app_error_handler(apiRetStatus);
         }
     }
     else
@@ -676,13 +657,13 @@ BulkSrcSinkAppThread_Entry (
             {
                 CyFxBulkSrcSinkApplnDebugInit ();
                 CyU3PDebugPrint (4, "Enter standby returned %d\r\n", stat);
-                CyFxAppErrorHandler (stat);
+                app_error_handler (stat);
             }
 
             /* If the entry into standby succeeds, the CyU3PSysEnterStandbyMode function never returns. The
                firmware application starts running again from the main entry point. Therefore, this code
                will never be executed. */
-            CyFxAppErrorHandler (1);
+            app_error_handler (1);
         }
         else
         {

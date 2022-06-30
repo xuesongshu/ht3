@@ -1,13 +1,8 @@
 #ifndef __MODULE_H__
 #define __MODULE_H__
 
-#include "cyu3system.h"
-#include "cyu3os.h"
 #include "cyu3dma.h"
 #include "cyu3error.h"
-#include "cyu3usb.h"
-#include "cyu3uart.h"
-#include "cyu3gpio.h"
 #include "cyu3utils.h"
 
 void config_dma(CyU3PDmaChannel *dma, uint16_t size, uint16_t socket_id, CyBool_t is_producer);
@@ -24,7 +19,6 @@ void process_command(uint8_t *ep0_buffer,
     volatile uint32_t* ep0_stat_count,
     CyBool_t* standby_mode_enable
 );
-void app_error_handler(CyU3PReturnStatus_t iapi_ret);
 void app_stop(void);
 void app_deinit (void);
 void app_init (void);

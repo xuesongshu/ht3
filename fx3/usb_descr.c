@@ -36,13 +36,8 @@
 #include "usb_descr.h"
 
 #include "cyu3system.h"
-#include "cyu3os.h"
-#include "cyu3dma.h"
 #include "cyu3error.h"
 #include "cyu3usb.h"
-#include "cyu3uart.h"
-#include "cyu3gpio.h"
-#include "cyu3utils.h"
 
 /* Standard device descriptor for USB 3.0 */
 const uint8_t g_usb30_device[] __attribute__ ((aligned (32))) =
@@ -330,7 +325,7 @@ void config_usb(void)
     if (apiRetStatus != CY_U3P_SUCCESS)
     {
         CyU3PDebugPrint (4, "USB set device descriptor failed, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler(apiRetStatus);
+        app_error_handler(apiRetStatus);
     }
 
     /* High speed device descriptor. */
@@ -338,7 +333,7 @@ void config_usb(void)
     if (apiRetStatus != CY_U3P_SUCCESS)
     {
         CyU3PDebugPrint (4, "USB set device descriptor failed, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler(apiRetStatus);
+        app_error_handler(apiRetStatus);
     }
 
     /* BOS descriptor */
@@ -346,7 +341,7 @@ void config_usb(void)
     if (apiRetStatus != CY_U3P_SUCCESS)
     {
         CyU3PDebugPrint (4, "USB set configuration descriptor failed, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler(apiRetStatus);
+        app_error_handler(apiRetStatus);
     }
 
     /* Device qualifier descriptor */
@@ -354,7 +349,7 @@ void config_usb(void)
     if (apiRetStatus != CY_U3P_SUCCESS)
     {
         CyU3PDebugPrint (4, "USB set device qualifier descriptor failed, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler(apiRetStatus);
+        app_error_handler(apiRetStatus);
     }
 
     /* Super speed configuration descriptor */
@@ -362,7 +357,7 @@ void config_usb(void)
     if (apiRetStatus != CY_U3P_SUCCESS)
     {
         CyU3PDebugPrint (4, "USB set configuration descriptor failed, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler(apiRetStatus);
+        app_error_handler(apiRetStatus);
     }
 
     /* High speed configuration descriptor */
@@ -370,7 +365,7 @@ void config_usb(void)
     if (apiRetStatus != CY_U3P_SUCCESS)
     {
         CyU3PDebugPrint (4, "USB Set Other Speed Descriptor failed, Error Code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler(apiRetStatus);
+        app_error_handler(apiRetStatus);
     }
 
     /* Full speed configuration descriptor */
@@ -378,7 +373,7 @@ void config_usb(void)
     if (apiRetStatus != CY_U3P_SUCCESS)
     {
         CyU3PDebugPrint (4, "USB Set Configuration Descriptor failed, Error Code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler(apiRetStatus);
+        app_error_handler(apiRetStatus);
     }
 
     /* String descriptor 0 */
@@ -386,7 +381,7 @@ void config_usb(void)
     if (apiRetStatus != CY_U3P_SUCCESS)
     {
         CyU3PDebugPrint (4, "USB set string descriptor failed, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler(apiRetStatus);
+        app_error_handler(apiRetStatus);
     }
 
     /* String descriptor 1 */
@@ -394,7 +389,7 @@ void config_usb(void)
     if (apiRetStatus != CY_U3P_SUCCESS)
     {
         CyU3PDebugPrint (4, "USB set string descriptor failed, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler(apiRetStatus);
+        app_error_handler(apiRetStatus);
     }
 
     /* String descriptor 2 */
@@ -402,6 +397,21 @@ void config_usb(void)
     if (apiRetStatus != CY_U3P_SUCCESS)
     {
         CyU3PDebugPrint (4, "USB set string descriptor failed, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler(apiRetStatus);
+        app_error_handler(apiRetStatus);
+    }
+}
+
+/* Application Error Handler */
+void app_error_handler (CyU3PReturnStatus_t iapi_ret)
+{
+    /* Application failed with the error code iapi_ret */
+
+    /* Add custom debug or recovery actions here */
+
+    /* Loop Indefinitely */
+    for (;;)
+    {
+        /* Thread sleep : 100 ms */
+        CyU3PThreadSleep (100);
     }
 }

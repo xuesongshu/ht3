@@ -1,6 +1,12 @@
 //专用于模块化优化app.c
 #include "module.h"
 #include "../config.h"
+#include "../usb_descr.h"
+
+#include "cyu3system.h"
+#include "cyu3os.h"
+#include "cyu3usb.h"
+#include "cyu3uart.h"
 
 void config_endpoint(uint16_t burst_len, uint16_t size, uint16_t ep_id)
 {
@@ -322,20 +328,5 @@ void process_command(uint8_t *ep0_buffer,
     {
         /* Only vendor requests are to be handled here. */
         CyU3PUsbStall (0, CyTrue, CyFalse);
-    }
-}
-
-/* Application Error Handler */
-void app_error_handler (CyU3PReturnStatus_t iapi_ret)
-{
-    /* Application failed with the error code iapi_ret */
-
-    /* Add custom debug or recovery actions here */
-
-    /* Loop Indefinitely */
-    for (;;)
-    {
-        /* Thread sleep : 100 ms */
-        CyU3PThreadSleep (100);
     }
 }

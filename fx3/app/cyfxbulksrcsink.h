@@ -27,19 +27,6 @@
 
 #include "../config.h"
 
-/* Extern definitions for the USB Descriptors */
-extern const uint8_t g_usb20_device[];
-extern const uint8_t g_usb30_device[];
-extern const uint8_t g_device_qual[];
-extern const uint8_t g_fs_config[];
-extern const uint8_t g_hs_config[];
-extern const uint8_t g_bos[];
-extern const uint8_t g_ss_config[];
-extern const uint8_t g_lang_id[];
-extern const uint8_t g_manufacture[];
-extern const uint8_t g_product[];
-extern const uint8_t g_usb_os[];
-
 #include <cyu3externcend.h>
 
 #endif /* _INCLUDED_CYFXBULKSRCSINK_H_ */
