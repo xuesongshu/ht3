@@ -10,8 +10,7 @@
 #include "cyu3gpio.h"
 #include "cyu3utils.h"
 
-void config_dma_consumer(CyU3PDmaChannel *dma, uint16_t size, uint16_t socket_id);
-void config_dma_producer(CyU3PDmaChannel *dma, uint16_t size, uint16_t socket_id);
+void config_dma(CyU3PDmaChannel *dma, uint16_t size, uint16_t socket_id, CyBool_t is_producer);
 void config_endpoint(uint16_t burst_len, uint16_t size, uint16_t ep_id);
 void destroy_endpoint(CyU3PDmaChannel *dma, uint16_t ep_id, uint16_t socket_id);
 void setup_cb_endpoint(uint16_t ep_id, CyU3PDmaChannel *dma);

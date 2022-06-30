@@ -22,7 +22,7 @@ void config_endpoint(uint16_t burst_len, uint16_t size, uint16_t ep_id)
     CyU3PUsbFlushEp(ep_id);
 }
 
-void config_dma_producer(CyU3PDmaChannel* dma, uint16_t size, uint16_t socket_id)
+void config_dma(CyU3PDmaChannel* dma, uint16_t size, uint16_t socket_id, CyBool_t is_producer)
 {
     CyU3PReturnStatus_t iapi_ret = CY_U3P_SUCCESS;
     CyU3PDmaChannelConfig_t dma_cfg;
@@ -40,60 +40,35 @@ void config_dma_producer(CyU3PDmaChannel* dma, uint16_t size, uint16_t socket_id
      * for performance improvement. */
     dma_cfg.size *= CY_FX_DMA_SIZE_MULTIPLIER;
     dma_cfg.count = CY_FX_BULKSRCSINK_DMA_BUF_COUNT;
-    dma_cfg.prodSckId = socket_id;
-    dma_cfg.consSckId = CY_U3P_CPU_SOCKET_CONS;
+    if(is_producer)
+    {
+        dma_cfg.notification = CY_U3P_DMA_CB_PROD_EVENT;
+        dma_cfg.prodSckId = socket_id;
+        dma_cfg.consSckId = CY_U3P_CPU_SOCKET_CONS;
+    }
+    else
+    {
+        dma_cfg.notification = CY_U3P_DMA_CB_CONS_EVENT;
+        dma_cfg.prodSckId = CY_U3P_CPU_SOCKET_PROD;
+        dma_cfg.consSckId = socket_id;
+    }
+    
     dma_cfg.dmaMode = CY_U3P_DMA_MODE_BYTE;
-    dma_cfg.notification = CY_U3P_DMA_CB_PROD_EVENT;
     dma_cfg.cb = dma_cb;
     dma_cfg.prodHeader = 0;
     dma_cfg.prodFooter = 0;
     dma_cfg.consHeader = 0;
     dma_cfg.prodAvailCount = 0;
 
-    iapi_ret = CyU3PDmaChannelCreate (dma,CY_U3P_DMA_TYPE_MANUAL_IN, &dma_cfg);
-    if (iapi_ret != CY_U3P_SUCCESS)
+    if(is_producer)
     {
-        CyU3PDebugPrint (4, "CyU3PDmaChannelCreate failed, Error code = %d\n", iapi_ret);
-        app_error_handler(iapi_ret);
+        iapi_ret = CyU3PDmaChannelCreate (dma,CY_U3P_DMA_TYPE_MANUAL_IN, &dma_cfg);
     }
-    /* Set DMA Channel transfer size */
-    iapi_ret = CyU3PDmaChannelSetXfer (dma, CY_FX_BULKSRCSINK_DMA_TX_SIZE);
-    if (iapi_ret != CY_U3P_SUCCESS)
+    else
     {
-        CyU3PDebugPrint (4, "CyU3PDmaChannelSetXfer failed, Error code = %d\n", iapi_ret);
-        app_error_handler(iapi_ret);
+        iapi_ret = CyU3PDmaChannelCreate (dma,CY_U3P_DMA_TYPE_MANUAL_OUT, &dma_cfg);
     }
-}
-
-void config_dma_consumer(CyU3PDmaChannel* dma, uint16_t size, uint16_t socket_id)
-{
-    CyU3PReturnStatus_t iapi_ret = CY_U3P_SUCCESS;
-    CyU3PDmaChannelConfig_t dma_cfg;
-
-    /* Create a DMA MANUAL_IN channel for the producer socket. */
-    CyU3PMemSet ((uint8_t *)&dma_cfg, 0, sizeof (dma_cfg));
-    /* The buffer size will be same as packet size for the
-     * full speed, high speed and super speed non-burst modes.
-     * For super speed burst mode of operation, the buffers will be
-     * 1024 * burst length so that a full burst can be completed.
-     * This will mean that a buffer will be available only after it
-     * has been filled or when a short packet is received. */
-    dma_cfg.size  = (size * CY_FX_EP_BURST_LENGTH);
-    /* Multiply the buffer size with the multiplier
-     * for performance improvement. */
-    dma_cfg.size *= CY_FX_DMA_SIZE_MULTIPLIER;
-    dma_cfg.count = CY_FX_BULKSRCSINK_DMA_BUF_COUNT;
-    dma_cfg.prodSckId = CY_U3P_CPU_SOCKET_PROD;
-    dma_cfg.consSckId = socket_id;
-    dma_cfg.dmaMode = CY_U3P_DMA_MODE_BYTE;
-    dma_cfg.notification = CY_U3P_DMA_CB_CONS_EVENT;
-    dma_cfg.cb = dma_cb;
-    dma_cfg.prodHeader = 0;
-    dma_cfg.prodFooter = 0;
-    dma_cfg.consHeader = 0;
-    dma_cfg.prodAvailCount = 0;
-
-    iapi_ret = CyU3PDmaChannelCreate (dma,CY_U3P_DMA_TYPE_MANUAL_OUT, &dma_cfg);
+    
     if (iapi_ret != CY_U3P_SUCCESS)
     {
         CyU3PDebugPrint (4, "CyU3PDmaChannelCreate failed, Error code = %d\n", iapi_ret);

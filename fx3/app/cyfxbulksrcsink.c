@@ -306,71 +306,13 @@ CyFxBulkSrcSinkApplnStart (
         void)
 {
     uint16_t size = get_buffer_size();
-    CyU3PDmaChannelConfig_t dmaCfg;
-    CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
 
     config_endpoint(CY_FX_EP_BURST_LENGTH, size, CY_FX_EP_PRODUCER);
     config_endpoint(CY_FX_EP_BURST_LENGTH, size, CY_FX_EP_CONSUMER);
+
+    config_dma(&glChHandleBulkSink, size, CY_FX_EP_PRODUCER_SOCKET, CyTrue);
+    config_dma(&glChHandleBulkSrc, size, CY_FX_EP_CONSUMER_SOCKET, CyFalse);
     
-
-    /* Create a DMA MANUAL_IN channel for the producer socket. */
-    CyU3PMemSet ((uint8_t *)&dmaCfg, 0, sizeof (dmaCfg));
-    /* The buffer size will be same as packet size for the
-     * full speed, high speed and super speed non-burst modes.
-     * For super speed burst mode of operation, the buffers will be
-     * 1024 * burst length so that a full burst can be completed.
-     * This will mean that a buffer will be available only after it
-     * has been filled or when a short packet is received. */
-    dmaCfg.size  = (size * CY_FX_EP_BURST_LENGTH);
-    /* Multiply the buffer size with the multiplier
-     * for performance improvement. */
-    dmaCfg.size *= CY_FX_DMA_SIZE_MULTIPLIER;
-    dmaCfg.count = CY_FX_BULKSRCSINK_DMA_BUF_COUNT;
-    dmaCfg.prodSckId = CY_FX_EP_PRODUCER_SOCKET;
-    dmaCfg.consSckId = CY_U3P_CPU_SOCKET_CONS;
-    dmaCfg.dmaMode = CY_U3P_DMA_MODE_BYTE;
-    dmaCfg.notification = CY_U3P_DMA_CB_PROD_EVENT;
-    dmaCfg.cb = dma_cb;
-    dmaCfg.prodHeader = 0;
-    dmaCfg.prodFooter = 0;
-    dmaCfg.consHeader = 0;
-    dmaCfg.prodAvailCount = 0;
-
-    apiRetStatus = CyU3PDmaChannelCreate (&glChHandleBulkSink,
-            CY_U3P_DMA_TYPE_MANUAL_IN, &dmaCfg);
-    if (apiRetStatus != CY_U3P_SUCCESS)
-    {
-        CyU3PDebugPrint (4, "CyU3PDmaChannelCreate failed, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler(apiRetStatus);
-    }
-
-    /* Create a DMA MANUAL_OUT channel for the consumer socket. */
-    dmaCfg.notification = CY_U3P_DMA_CB_CONS_EVENT;
-    dmaCfg.prodSckId = CY_U3P_CPU_SOCKET_PROD;
-    dmaCfg.consSckId = CY_FX_EP_CONSUMER_SOCKET;
-    apiRetStatus = CyU3PDmaChannelCreate (&glChHandleBulkSrc,
-            CY_U3P_DMA_TYPE_MANUAL_OUT, &dmaCfg);
-    if (apiRetStatus != CY_U3P_SUCCESS)
-    {
-        CyU3PDebugPrint (4, "CyU3PDmaChannelCreate failed, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler(apiRetStatus);
-    }
-
-    /* Set DMA Channel transfer size */
-    apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSink, CY_FX_BULKSRCSINK_DMA_TX_SIZE);
-    if (apiRetStatus != CY_U3P_SUCCESS)
-    {
-        CyU3PDebugPrint (4, "CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler(apiRetStatus);
-    }
-
-    apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSrc, CY_FX_BULKSRCSINK_DMA_TX_SIZE);
-    if (apiRetStatus != CY_U3P_SUCCESS)
-    {
-        CyU3PDebugPrint (4, "CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
-        CyFxAppErrorHandler(apiRetStatus);
-    }
-
     CyU3PUsbRegisterEpEvtCallback (CyFxBulkSrcSinkApplnEpEvtCB, CYU3P_USBEP_SS_RETRY_EVT, 0x00, 0x02);
     CyFxBulkSrcSinkFillInBuffers ();
 
