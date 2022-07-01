@@ -1,5 +1,6 @@
 //专用于模块化优化app.c
 #include "module.h"
+#include "gpif2config.h"
 #include "../config.h"
 #include "../usb_descr.h"
 
@@ -7,6 +8,8 @@
 #include "cyu3os.h"
 #include "cyu3usb.h"
 #include "cyu3uart.h"
+#include "cyu3pib.h"
+#include "cyu3gpif.h"
 
 void config_endpoint(uint16_t burst_len, uint16_t size, uint16_t ep_id)
 {
@@ -77,7 +80,7 @@ void config_dma(CyU3PDmaChannel *dma,
     {
         iapi_ret = CyU3PDmaChannelCreate (dma,CY_U3P_DMA_TYPE_MANUAL_OUT, &dma_cfg);
     }
-    
+    //iapi_ret = CyU3PDmaChannelCreate (dma,CY_U3P_DMA_TYPE_MANUAL, &dma_cfg);
     if (iapi_ret != CY_U3P_SUCCESS)
     {
         CyU3PDebugPrint (4, "CyU3PDmaChannelCreate failed, Error code = %d\n", iapi_ret);
@@ -331,5 +334,45 @@ void process_command(uint8_t *ep0_buffer,
     {
         /* Only vendor requests are to be handled here. */
         CyU3PUsbStall (0, CyTrue, CyFalse);
+    }
+}
+
+void config_pib(void)
+{
+    CyU3PPibClock_t pibClock;
+    CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
+
+    /* Initialize the p-port block. */
+    pibClock.clkDiv = 2;
+    pibClock.clkSrc = CY_U3P_SYS_CLK;
+    pibClock.isHalfDiv = CyFalse;
+    /* Disable DLL for sync GPIF */
+    pibClock.isDllEnable = CyFalse;
+    apiRetStatus = CyU3PPibInit(CyTrue, &pibClock);
+    if (apiRetStatus != CY_U3P_SUCCESS)
+    {
+        CyU3PDebugPrint (4, "P-port Initialization failed, Error Code = %d\n",apiRetStatus);
+        app_error_handler(apiRetStatus);
+    }
+
+    /* Load the GPIF configuration for Slave FIFO sync mode. */
+    apiRetStatus = CyU3PGpifLoad (&CyFxGpifConfig);
+    if (apiRetStatus != CY_U3P_SUCCESS)
+    {
+        CyU3PDebugPrint (4, "CyU3PGpifLoad failed, Error Code = %d\n",apiRetStatus);
+        app_error_handler(apiRetStatus);
+    }
+
+    CyU3PGpifSocketConfigure (0,CY_U3P_UIB_SOCKET_PROD_2,4,CyFalse,1); // PRODUCER1
+	CyU3PGpifSocketConfigure (1,CY_U3P_PIB_SOCKET_1,4,CyFalse,1); // PRODUCER2
+    CyU3PGpifSocketConfigure (2,CY_U3P_UIB_SOCKET_CONS_1,5,CyFalse,1); // CONSUMER1
+	CyU3PGpifSocketConfigure (3,CY_U3P_PIB_SOCKET_3,5,CyFalse,1); // CONSUMER2
+
+    /* Start the state machine. */
+    apiRetStatus = CyU3PGpifSMStart (RESET,ALPHA_RESET);
+    if (apiRetStatus != CY_U3P_SUCCESS)
+    {
+        CyU3PDebugPrint (4, "CyU3PGpifSMStart failed, Error Code = %d\n",apiRetStatus);
+        app_error_handler(apiRetStatus);
     }
 }

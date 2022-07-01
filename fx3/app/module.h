@@ -24,6 +24,7 @@ void process_command(uint8_t *ep0_buffer,
     volatile uint32_t* ep0_stat_count,
     CyBool_t* standby_mode_enable
 );
+void config_pib(void);
 void app_stop(void);
 void app_deinit (void);
 void app_init (void);

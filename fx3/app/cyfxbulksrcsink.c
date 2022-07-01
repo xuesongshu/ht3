@@ -59,8 +59,10 @@
 #include "../usb_descr.h"
 
 CyU3PThread     bulkSrcSinkAppThread;    /* Application thread structure */
-CyU3PDmaChannel glChHandleBulkSink;      /* DMA MANUAL_IN channel handle.          */
-CyU3PDmaChannel glChHandleBulkSrc;       /* DMA MANUAL_OUT channel handle.         */
+CyU3PDmaChannel g_dma1_sink;      /* DMA MANUAL_IN channel handle.          */
+CyU3PDmaChannel g_dma1_src;       /* DMA MANUAL_OUT channel handle.         */
+CyU3PDmaChannel g_dma2_sink;      /* DMA MANUAL_IN channel handle.          */
+CyU3PDmaChannel g_dma2_src;       /* DMA MANUAL_OUT channel handle.         */
 
 CyBool_t glIsApplnActive = CyFalse;      /* Whether the source sink application is active or not. */
 uint32_t glDMARxCount = 0;               /* Counter to track the number of buffers received. */
@@ -248,7 +250,7 @@ CyFxBulkSrcSinkFillInBuffers (
     /* Now preload all buffers in the MANUAL_OUT pipe with the required data. */
     for (index = 0; index < CY_FX_BULKSRCSINK_DMA_BUF_COUNT; index++)
     {
-        stat = CyU3PDmaChannelGetBuffer (&glChHandleBulkSrc, &buf_p, CYU3P_NO_WAIT);
+        stat = CyU3PDmaChannelGetBuffer (&g_dma1_src, &buf_p, CYU3P_NO_WAIT);
         if (stat != CY_U3P_SUCCESS)
         {
             CyU3PDebugPrint (4, "CyU3PDmaChannelGetBuffer failed, Error code = %d\n", stat);
@@ -256,7 +258,7 @@ CyFxBulkSrcSinkFillInBuffers (
         }
 
         CyU3PMemSet (buf_p.buffer, CY_FX_BULKSRCSINK_PATTERN, buf_p.size);
-        stat = CyU3PDmaChannelCommitBuffer (&glChHandleBulkSrc, buf_p.size, 0);
+        stat = CyU3PDmaChannelCommitBuffer (&g_dma1_src, buf_p.size, 0);
         if (stat != CY_U3P_SUCCESS)
         {
             CyU3PDebugPrint (4, "CyU3PDmaChannelCommitBuffer failed, Error code = %d\n", stat);
@@ -292,8 +294,11 @@ app_start (
     config_endpoint(CY_FX_EP_BURST_LENGTH, size, HT_PRODUCER1);
     config_endpoint(CY_FX_EP_BURST_LENGTH, size, HT_CONSUMER1);
 
-    config_dma(&glChHandleBulkSink, size, HT_PRODUCER1_SOCKET, CY_U3P_CPU_SOCKET_CONS, CyTrue);
-    config_dma(&glChHandleBulkSrc, size, CY_U3P_CPU_SOCKET_PROD, HT_CONSUMER1_SOCKET, CyFalse);
+    config_dma(&g_dma1_sink, size, HT_PRODUCER1_SOCKET, CY_U3P_CPU_SOCKET_CONS, CyTrue);
+    config_dma(&g_dma1_src, size, CY_U3P_CPU_SOCKET_PROD, HT_CONSUMER1_SOCKET, CyFalse);
+
+    //config_dma(&g_dma2_sink, size, HT_PRODUCER2_SOCKET, CY_U3P_CPU_SOCKET_CONS+1, CyTrue);
+    //config_dma(&g_dma2_src, size, CY_U3P_CPU_SOCKET_PROD+1, HT_CONSUMER2_SOCKET, CyFalse);
     
     CyU3PUsbRegisterEpEvtCallback (CyFxBulkSrcSinkApplnEpEvtCB, CYU3P_USBEP_SS_RETRY_EVT, 0x00, 0x02);
     CyFxBulkSrcSinkFillInBuffers ();
@@ -309,8 +314,8 @@ void
 app_stop (
         void)
 {
-    destroy_endpoint(&glChHandleBulkSink, HT_PRODUCER1, HT_PRODUCER1_SOCKET);
-    destroy_endpoint(&glChHandleBulkSrc, HT_CONSUMER1, HT_CONSUMER1_SOCKET);
+    destroy_endpoint(&g_dma1_sink, HT_PRODUCER1, HT_PRODUCER1_SOCKET);
+    destroy_endpoint(&g_dma1_src, HT_CONSUMER1, HT_CONSUMER1_SOCKET);
 }
 
 /* Callback to handle the USB setup requests. */
@@ -385,13 +390,13 @@ CyFxBulkSrcSinkApplnUSBSetupCB (
             {
                 if (wIndex == HT_PRODUCER1)
                 {
-                    setup_cb_endpoint(wIndex, &glChHandleBulkSink);
+                    setup_cb_endpoint(wIndex, &g_dma1_sink);
                     isHandled = CyTrue;
                 }
 
                 if (wIndex == HT_CONSUMER1)
                 {
-                    setup_cb_endpoint(wIndex, &glChHandleBulkSrc);
+                    setup_cb_endpoint(wIndex, &g_dma1_src);
                     isHandled = CyTrue;
                     CyFxBulkSrcSinkFillInBuffers ();
                 }
@@ -769,17 +774,22 @@ main (void)
      * is connected to the IO(53:56). This means that either DQ32 mode should be
      * selected or lppMode should be set to UART_ONLY. Here we are choosing
      * UART_ONLY configuration. */
-    io_cfg.isDQ32Bit = CyFalse;
+    io_cfg.isDQ32Bit = CyTrue;
     io_cfg.s0Mode = CY_U3P_SPORT_INACTIVE;
     io_cfg.s1Mode = CY_U3P_SPORT_INACTIVE;
     io_cfg.useUart   = CyTrue;
     io_cfg.useI2C    = CyFalse;
     io_cfg.useI2S    = CyFalse;
     io_cfg.useSpi    = CyFalse;
-    io_cfg.lppMode   = CY_U3P_IO_MATRIX_LPP_UART_ONLY;
+    io_cfg.lppMode   = CY_U3P_IO_MATRIX_LPP_DEFAULT;
 
     /* Enable the GPIO which would have been setup by 2-stage booter. */
-    io_cfg.gpioSimpleEn[0]  = 0;
+    uint32_t GPIO_23 = (1 << 23);
+    uint32_t GPIO_25 = (1 << 25);
+    uint32_t GPIO_26 = (1 << 26);
+    uint32_t GPIO_27 = (1 << 27);
+
+    io_cfg.gpioSimpleEn[0]  = GPIO_23 | GPIO_25 | GPIO_26 | GPIO_27;
     io_cfg.gpioSimpleEn[1]  = FX3_GPIO_TO_HIFLAG(FX3_GPIO_TEST_OUT);
     io_cfg.gpioComplexEn[0] = 0;
     io_cfg.gpioComplexEn[1] = 0;

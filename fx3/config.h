@@ -56,10 +56,10 @@
 
 #endif
 
-#define HT_PRODUCER1_SOCKET        CY_U3P_UIB_SOCKET_PROD_1    /* Socket 1 producer */
-#define HT_CONSUMER1_SOCKET        CY_U3P_UIB_SOCKET_CONS_1    /* Socket 1 consumer */
-#define HT_PRODUCER2_SOCKET        CY_U3P_UIB_SOCKET_PROD_2    /* Socket 2 producer */
-#define HT_CONSUMER2_SOCKET        CY_U3P_UIB_SOCKET_CONS_2    /* Socket 2 consumer */
+#define HT_PRODUCER1_SOCKET        CY_U3P_UIB_SOCKET_PROD_1    //对应CY_U3P_UIB_SOCKET_CONS_1
+#define HT_CONSUMER1_SOCKET        CY_U3P_UIB_SOCKET_CONS_2    //对应CY_U3P_UIB_SOCKET_PROD_2
+#define HT_PRODUCER2_SOCKET        CY_U3P_UIB_SOCKET_PROD_3    //对应CY_U3P_UIB_SOCKET_CONS_3
+#define HT_CONSUMER2_SOCKET        CY_U3P_UIB_SOCKET_CONS_4    //对应CY_U3P_UIB_SOCKET_PROD_3
 
 #define CY_FX_BULKSRCSINK_DMA_TX_SIZE        (0)        /* DMA transfer size is set to infinite */
 #define CY_FX_BULKSRCSINK_THREAD_STACK       (0x1000)   /* Bulk loop application thread stack size */
