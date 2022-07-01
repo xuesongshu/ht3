@@ -59,10 +59,10 @@
 #include "../usb_descr.h"
 
 CyU3PThread     bulkSrcSinkAppThread;    /* Application thread structure */
-CyU3PDmaChannel g_dma1_sink;      /* DMA MANUAL_IN channel handle.          */
-CyU3PDmaChannel g_dma1_src;       /* DMA MANUAL_OUT channel handle.         */
-CyU3PDmaChannel g_dma2_sink;      /* DMA MANUAL_IN channel handle.          */
-CyU3PDmaChannel g_dma2_src;       /* DMA MANUAL_OUT channel handle.         */
+CyU3PDmaChannel g_uvc_dma_prod;      /* DMA MANUAL_IN channel handle.          */
+CyU3PDmaChannel g_uvc_dma_cons;       /* DMA MANUAL_OUT channel handle.         */
+CyU3PDmaChannel g_gpu_dma_prod;      /* DMA MANUAL_IN channel handle.          */
+CyU3PDmaChannel g_gpu_dma_cons;       /* DMA MANUAL_OUT channel handle.         */
 
 CyBool_t glIsApplnActive = CyFalse;      /* Whether the source sink application is active or not. */
 uint32_t glDMARxCount = 0;               /* Counter to track the number of buffers received. */
@@ -90,36 +90,10 @@ CyU3PTimer glLpmTimer;
  * are routed to the UART and can be seen using a UART console
  * running at 115200 baud rate. */
 void
-CyFxBulkSrcSinkApplnDebugInit (void)
+app_debug_init (void)
 {
-    CyU3PGpioClock_t  gpioClock;
     CyU3PUartConfig_t uartConfig;
     CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
-
-    /* Initialize the GPIO block. If we are transitioning from the boot app, we can verify whether the GPIO
-       state is retained. */
-    gpioClock.fastClkDiv = 2;
-    gpioClock.slowClkDiv = 32;
-    gpioClock.simpleDiv  = CY_U3P_GPIO_SIMPLE_DIV_BY_16;
-    gpioClock.clkSrc     = CY_U3P_SYS_CLK_BY_2;
-    gpioClock.halfDiv    = 0;
-    apiRetStatus = CyU3PGpioInit (&gpioClock, NULL);
-
-    /* When FX3 is restarting from standby mode, the GPIO block would already be ON and need not be started
-       again. */
-    if ((apiRetStatus != 0) && (apiRetStatus != CY_U3P_ERROR_ALREADY_STARTED))
-    {
-        app_error_handler(apiRetStatus);
-    }
-    else
-    {
-        /* Set the test GPIO as an output and update the value to 0. */
-        CyU3PGpioSimpleConfig_t testConf = {CyFalse, CyTrue, CyTrue, CyFalse, CY_U3P_GPIO_NO_INTR};
-
-        apiRetStatus = CyU3PGpioSetSimpleConfig (FX3_GPIO_TEST_OUT, &testConf);
-        if (apiRetStatus != 0)
-            app_error_handler (apiRetStatus);
-    }
 
     /* Initialize the UART for printing debug messages */
     apiRetStatus = CyU3PUartInit();
@@ -164,14 +138,14 @@ CyFxBulkSrcSinkApplnDebugInit (void)
 
 
 CyBool_t
-CyFxApplnLPMRqtCB (
+lpm_request_cb (
         CyU3PUsbLinkPowerMode link_mode)
 {
     return CyTrue;
 }
 
 /* Callback funtion for the timer expiry notification. */
-void TimerCb(void)
+void timer_cb(void)
 {
     /* Enable the low power mode transition on timer expiry */
     CyU3PUsbLPMEnable();
@@ -240,7 +214,7 @@ dma_cb (
  * Fill all DMA buffers on the IN endpoint with data. This gets data moving after an endpoint reset.
  */
 static void
-CyFxBulkSrcSinkFillInBuffers (
+fill_in_buffer (
         void)
 {
     CyU3PReturnStatus_t stat;
@@ -250,7 +224,7 @@ CyFxBulkSrcSinkFillInBuffers (
     /* Now preload all buffers in the MANUAL_OUT pipe with the required data. */
     for (index = 0; index < CY_FX_BULKSRCSINK_DMA_BUF_COUNT; index++)
     {
-        stat = CyU3PDmaChannelGetBuffer (&g_dma1_src, &buf_p, CYU3P_NO_WAIT);
+        stat = CyU3PDmaChannelGetBuffer (&g_uvc_dma_cons, &buf_p, CYU3P_NO_WAIT);
         if (stat != CY_U3P_SUCCESS)
         {
             CyU3PDebugPrint (4, "CyU3PDmaChannelGetBuffer failed, Error code = %d\n", stat);
@@ -258,7 +232,7 @@ CyFxBulkSrcSinkFillInBuffers (
         }
 
         CyU3PMemSet (buf_p.buffer, CY_FX_BULKSRCSINK_PATTERN, buf_p.size);
-        stat = CyU3PDmaChannelCommitBuffer (&g_dma1_src, buf_p.size, 0);
+        stat = CyU3PDmaChannelCommitBuffer (&g_uvc_dma_cons, buf_p.size, 0);
         if (stat != CY_U3P_SUCCESS)
         {
             CyU3PDebugPrint (4, "CyU3PDmaChannelCommitBuffer failed, Error code = %d\n", stat);
@@ -270,7 +244,7 @@ CyFxBulkSrcSinkFillInBuffers (
 static volatile CyBool_t glSrcEpFlush = CyFalse;
 
 void
-CyFxBulkSrcSinkApplnEpEvtCB (
+ep_event_cb (
         CyU3PUsbEpEvtType evtype,
         CyU3PUSBSpeed_t   speed,
         uint8_t           epNum)
@@ -291,17 +265,18 @@ app_start (
 {
     uint16_t size = get_buffer_size();
 
-    config_endpoint(CY_FX_EP_BURST_LENGTH, size, HT_PRODUCER1);
-    config_endpoint(CY_FX_EP_BURST_LENGTH, size, HT_CONSUMER1);
+    config_endpoint(HT_BURST_LENGTH, size, HT_UVC_PROD);
+    config_endpoint(HT_BURST_LENGTH, size, HT_UVC_CONS);
+    config_endpoint(HT_BURST_LENGTH, size, HT_GPU_PROD);
+    config_endpoint(HT_BURST_LENGTH, size, HT_GPU_CONS);
 
-    config_dma(&g_dma1_sink, size, HT_PRODUCER1_SOCKET, CY_U3P_CPU_SOCKET_CONS, CyTrue);
-    config_dma(&g_dma1_src, size, CY_U3P_CPU_SOCKET_PROD, HT_CONSUMER1_SOCKET, CyFalse);
-
-    //config_dma(&g_dma2_sink, size, HT_PRODUCER2_SOCKET, CY_U3P_CPU_SOCKET_CONS+1, CyTrue);
-    //config_dma(&g_dma2_src, size, CY_U3P_CPU_SOCKET_PROD+1, HT_CONSUMER2_SOCKET, CyFalse);
+    config_dma(&g_uvc_dma_prod, size, HT_UVC_PROD_SOCKET, CY_U3P_CPU_SOCKET_CONS, CyTrue);
+    config_dma(&g_uvc_dma_cons, size, CY_U3P_CPU_SOCKET_PROD, HT_UVC_CONS_SOCKET, CyFalse);
+    config_dma(&g_gpu_dma_prod, size, HT_GPU_PROD_SOCKET, CY_U3P_UIB_SOCKET_CONS_4, CyTrue);
+    config_dma(&g_gpu_dma_cons, size, CY_U3P_UIB_SOCKET_PROD_4, HT_GPU_CONS_SOCKET, CyFalse);
     
-    CyU3PUsbRegisterEpEvtCallback (CyFxBulkSrcSinkApplnEpEvtCB, CYU3P_USBEP_SS_RETRY_EVT, 0x00, 0x02);
-    CyFxBulkSrcSinkFillInBuffers ();
+    CyU3PUsbRegisterEpEvtCallback (ep_event_cb, CYU3P_USBEP_SS_RETRY_EVT, 0x00, 0x02);
+    fill_in_buffer ();
 
     /* Update the flag so that the application thread is notified of this. */
     glIsApplnActive = CyTrue;
@@ -314,13 +289,15 @@ void
 app_stop (
         void)
 {
-    destroy_endpoint(&g_dma1_sink, HT_PRODUCER1, HT_PRODUCER1_SOCKET);
-    destroy_endpoint(&g_dma1_src, HT_CONSUMER1, HT_CONSUMER1_SOCKET);
+    destroy_endpoint(&g_uvc_dma_prod, HT_UVC_PROD, HT_UVC_PROD_SOCKET);
+    destroy_endpoint(&g_uvc_dma_cons, HT_UVC_CONS, HT_UVC_CONS_SOCKET);
+    destroy_endpoint(&g_gpu_dma_prod, HT_GPU_PROD, HT_GPU_PROD_SOCKET);
+    destroy_endpoint(&g_gpu_dma_cons, HT_GPU_CONS, HT_GPU_CONS_SOCKET);
 }
 
 /* Callback to handle the USB setup requests. */
 CyBool_t
-CyFxBulkSrcSinkApplnUSBSetupCB (
+usb_setup_cb (
         uint32_t setupdat0, /* SETUP Data 0 */
         uint32_t setupdat1  /* SETUP Data 1 */
     )
@@ -388,17 +365,30 @@ CyFxBulkSrcSinkApplnUSBSetupCB (
         {
             if (glIsApplnActive)
             {
-                if (wIndex == HT_PRODUCER1)
+                if (wIndex == HT_UVC_PROD)
                 {
-                    setup_cb_endpoint(wIndex, &g_dma1_sink);
+                    setup_cb_endpoint(wIndex, &g_uvc_dma_prod);
                     isHandled = CyTrue;
                 }
 
-                if (wIndex == HT_CONSUMER1)
+                if (wIndex == HT_UVC_CONS)
                 {
-                    setup_cb_endpoint(wIndex, &g_dma1_src);
+                    setup_cb_endpoint(wIndex, &g_uvc_dma_cons);
                     isHandled = CyTrue;
-                    CyFxBulkSrcSinkFillInBuffers ();
+                    fill_in_buffer ();
+                }
+
+                if (wIndex == HT_GPU_PROD)
+                {
+                    setup_cb_endpoint(wIndex, &g_gpu_dma_prod);
+                    isHandled = CyTrue;
+                }
+
+                if (wIndex == HT_GPU_CONS)
+                {
+                    setup_cb_endpoint(wIndex, &g_gpu_dma_cons);
+                    isHandled = CyTrue;
+                    fill_in_buffer ();
                 }
             }
         }
@@ -419,7 +409,7 @@ CyFxBulkSrcSinkApplnUSBSetupCB (
 
 /* This is the callback function to handle the USB events. */
 void
-CyFxBulkSrcSinkApplnUSBEventCB (
+usb_event_cb (
         CyU3PUsbEventType_t evtype, /* Event type */
         uint16_t            evdata  /* Event data */
         )
@@ -482,7 +472,7 @@ CyFxBulkSrcSinkApplnUSBEventCB (
    the function always return CyTrue.
  */
 CyBool_t
-CyFxBulkSrcSinkApplntCB (
+app_cb (
         CyU3PUsbLinkPowerMode link_mode)
 {
     return CyTrue;
@@ -500,13 +490,13 @@ app_init (void)
     /* The fast enumeration is the easiest way to setup a USB connection,
      * where all enumeration phase is handled by the library. Only the
      * class / vendor requests need to be handled by the application. */
-    CyU3PUsbRegisterSetupCallback(CyFxBulkSrcSinkApplnUSBSetupCB, CyTrue);
+    CyU3PUsbRegisterSetupCallback(usb_setup_cb, CyTrue);
 
     /* Setup the callback to handle the USB events. */
-    CyU3PUsbRegisterEventCallback(CyFxBulkSrcSinkApplnUSBEventCB);
+    CyU3PUsbRegisterEventCallback(usb_event_cb);
 
     /* Register a callback to handle LPM requests from the USB 3.0 host. */
-    CyU3PUsbRegisterLPMRequestCallback(CyFxApplnLPMRqtCB);
+    CyU3PUsbRegisterLPMRequestCallback(lpm_request_cb);
 
     /* Start the USB functionality. */
     apiRetStatus = CyU3PUsbStart();
@@ -518,11 +508,10 @@ app_init (void)
         app_error_handler(apiRetStatus);
     }
 
-    /* Change GPIO state again. */
-    CyU3PGpioSimpleSetValue (FX3_GPIO_TEST_OUT, CyTrue);
-
+    //config_pib();
     /* Set the USB Enumeration descriptors */
     config_usb();
+
 
     gl_UsbLogBuffer = (uint8_t *)CyU3PDmaBufferAlloc (CYFX_USBLOG_SIZE);
     if (gl_UsbLogBuffer)
@@ -567,7 +556,7 @@ app_deinit (
 
 /* Entry function for the BulkSrcSinkAppThread. */
 void
-BulkSrcSinkAppThread_Entry (
+app_entry (
         uint32_t input)
 {
     CyU3PReturnStatus_t stat;
@@ -578,14 +567,14 @@ BulkSrcSinkAppThread_Entry (
     CyU3PUsbLinkPowerMode curState;
 
     /* Initialize the debug module */
-    CyFxBulkSrcSinkApplnDebugInit();
+    app_debug_init();
     CyU3PDebugPrint (1, "\n\ndebug initialized\r\n");
 
     /* Initialize the application */
     app_init();
 
     /* Create a timer with 100 ms expiry to enable/disable LPM transitions */ 
-    CyU3PTimerCreate (&glLpmTimer, TimerCb, 0, 100, 100, CYU3P_NO_ACTIVATE);
+    CyU3PTimerCreate (&glLpmTimer, timer_cb, 0, 100, 100, CYU3P_NO_ACTIVATE);
 
     for (;;)
     {
@@ -625,7 +614,7 @@ BulkSrcSinkAppThread_Entry (
         {
             /* Stall the endpoint, so that the host can reset the pipe and continue. */
             glSrcEpFlush = CyFalse;
-            CyU3PUsbStall (HT_CONSUMER1, CyTrue, CyFalse);
+            CyU3PUsbStall (HT_UVC_CONS, CyTrue, CyFalse);
         }
 
         /* Force the USB 3.0 link to U2. */
@@ -660,7 +649,7 @@ BulkSrcSinkAppThread_Entry (
                     (uint8_t *)0x40060000);
             if (stat != CY_U3P_SUCCESS)
             {
-                CyFxBulkSrcSinkApplnDebugInit ();
+                app_debug_init ();
                 CyU3PDebugPrint (4, "Enter standby returned %d\r\n", stat);
                 app_error_handler (stat);
             }
@@ -714,7 +703,7 @@ CyFxApplicationDefine (
     /* Create the thread for the application */
     ret = CyU3PThreadCreate (&bulkSrcSinkAppThread,                /* App thread structure */
                           "21:Bulk_src_sink",                      /* Thread ID and thread name */
-                          BulkSrcSinkAppThread_Entry,              /* App thread entry function */
+                          app_entry,              /* App thread entry function */
                           0,                                       /* No input parameter to thread */
                           ptr,                                     /* Pointer to the allocated thread stack */
                           CY_FX_BULKSRCSINK_THREAD_STACK,          /* App thread stack size */
@@ -799,6 +788,7 @@ main (void)
         goto handle_fatal_error;
     }
 
+    config_gpio();
     /* This is a non returnable call for initializing the RTOS kernel */
     CyU3PKernelEntry ();
 

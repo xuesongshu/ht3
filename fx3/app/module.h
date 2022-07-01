@@ -28,4 +28,6 @@ void config_pib(void);
 void app_stop(void);
 void app_deinit (void);
 void app_init (void);
+void config_gpio();
+void setup_gpio(uint16_t pin);
 #endif

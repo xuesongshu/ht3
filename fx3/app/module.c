@@ -1,4 +1,4 @@
-//专用于模块化优化app.c
+﻿//专用于模块化优化app.c
 #include "module.h"
 #include "gpif2config.h"
 #include "../config.h"
@@ -10,6 +10,7 @@
 #include "cyu3uart.h"
 #include "cyu3pib.h"
 #include "cyu3gpif.h"
+#include "cyu3gpio.h"
 
 void config_endpoint(uint16_t burst_len, uint16_t size, uint16_t ep_id)
 {
@@ -49,7 +50,7 @@ void config_dma(CyU3PDmaChannel *dma,
      * 1024 * burst length so that a full burst can be completed.
      * This will mean that a buffer will be available only after it
      * has been filled or when a short packet is received. */
-    dma_cfg.size  = (size * CY_FX_EP_BURST_LENGTH);
+    dma_cfg.size  = (size * HT_BURST_LENGTH);
     /* Multiply the buffer size with the multiplier
      * for performance improvement. */
     dma_cfg.size *= CY_FX_DMA_SIZE_MULTIPLIER;
@@ -363,9 +364,9 @@ void config_pib(void)
         app_error_handler(apiRetStatus);
     }
 
-    CyU3PGpifSocketConfigure (0,CY_U3P_UIB_SOCKET_PROD_2,4,CyFalse,1); // PRODUCER1
+    CyU3PGpifSocketConfigure (0,CY_U3P_PIB_SOCKET_0,4,CyFalse,1); // PRODUCER1
 	CyU3PGpifSocketConfigure (1,CY_U3P_PIB_SOCKET_1,4,CyFalse,1); // PRODUCER2
-    CyU3PGpifSocketConfigure (2,CY_U3P_UIB_SOCKET_CONS_1,5,CyFalse,1); // CONSUMER1
+    CyU3PGpifSocketConfigure (2,CY_U3P_PIB_SOCKET_2,5,CyFalse,1); // CONSUMER1
 	CyU3PGpifSocketConfigure (3,CY_U3P_PIB_SOCKET_3,5,CyFalse,1); // CONSUMER2
 
     /* Start the state machine. */
@@ -373,6 +374,58 @@ void config_pib(void)
     if (apiRetStatus != CY_U3P_SUCCESS)
     {
         CyU3PDebugPrint (4, "CyU3PGpifSMStart failed, Error Code = %d\n",apiRetStatus);
+        app_error_handler(apiRetStatus);
+    }
+}
+
+void config_gpio()
+{
+    CyU3PGpioClock_t gpioClock;
+    CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
+
+    gpioClock.fastClkDiv = 2;
+	gpioClock.slowClkDiv = 0;
+	gpioClock.simpleDiv = CY_U3P_GPIO_SIMPLE_DIV_BY_2;
+	gpioClock.clkSrc = CY_U3P_SYS_CLK;
+	gpioClock.halfDiv = 0;
+
+	apiRetStatus = CyU3PGpioInit(&gpioClock, NULL);
+	if (apiRetStatus != 0)
+	{
+		/* Error Handling */
+		CyU3PDebugPrint (4, "CyU3PGpioInit failed, error code = %d\n", apiRetStatus);
+		app_error_handler(apiRetStatus);
+	}
+
+    /* Set the test GPIO as an output and update the value to 0. */
+    CyU3PGpioSimpleConfig_t testConf = {CyFalse, CyTrue, CyTrue, CyFalse, CY_U3P_GPIO_NO_INTR};
+
+    apiRetStatus = CyU3PGpioSetSimpleConfig (FX3_GPIO_TEST_OUT, &testConf);
+    if (apiRetStatus != 0)
+        app_error_handler (apiRetStatus);
+    CyU3PGpioSimpleSetValue (FX3_GPIO_TEST_OUT, CyTrue);
+        
+    setup_gpio(23);
+    setup_gpio(25);
+    setup_gpio(26);
+    setup_gpio(27);
+}
+
+void setup_gpio(uint16_t pin)
+{
+    CyU3PGpioSimpleConfig_t gpioConfig;
+    CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
+
+    gpioConfig.outValue = CyTrue;
+    gpioConfig.driveLowEn = CyTrue;
+    gpioConfig.driveHighEn = CyTrue;
+    gpioConfig.inputEn = CyFalse;
+    gpioConfig.intrMode = CY_U3P_GPIO_NO_INTR;
+    apiRetStatus = CyU3PGpioSetSimpleConfig(23, &gpioConfig);
+    if (apiRetStatus != CY_U3P_SUCCESS)
+    {
+        /* Error handling */
+        CyU3PDebugPrint (4, "CyU3PGpioSetSimpleConfig failed, error code = %d\n",apiRetStatus);
         app_error_handler(apiRetStatus);
     }
 }
