@@ -272,8 +272,8 @@ app_start (
 
     config_dma(&g_uvc_dma_prod, size, HT_UVC_PROD_SOCKET, CY_U3P_CPU_SOCKET_CONS, CyTrue);
     config_dma(&g_uvc_dma_cons, size, CY_U3P_CPU_SOCKET_PROD, HT_UVC_CONS_SOCKET, CyFalse);
-    //config_dma(&g_gpu_dma_prod, size, HT_GPU_PROD_SOCKET, CY_U3P_UIB_SOCKET_CONS_4, CyTrue);
-    //config_dma(&g_gpu_dma_cons, size, CY_U3P_UIB_SOCKET_PROD_4, HT_GPU_CONS_SOCKET, CyFalse);
+    config_dma(&g_gpu_dma_prod, size, HT_GPU_PROD_SOCKET, CY_U3P_UIB_SOCKET_CONS_4, CyTrue);
+    config_dma(&g_gpu_dma_cons, size, CY_U3P_UIB_SOCKET_PROD_4, HT_GPU_CONS_SOCKET, CyFalse);
     
     CyU3PUsbRegisterEpEvtCallback (ep_event_cb, CYU3P_USBEP_SS_RETRY_EVT, 0x00, 0x02);
     fill_in_buffer ();
